@@ -29,6 +29,9 @@
   },
   "scripts": {
     "build": "npm run build:prod",
+    "docs:dev": "npm --prefix documentation run start",
+    "docs:build": "npm --prefix documentation run build",
+    "docs:serve": "npm --prefix documentation run serve",
     "build:dev": "vite build --mode development && tsc --project tsconfig.build.json && node scripts/prepare-cjs-types.mjs",
     "build:prod": "vite build && tsc --project tsconfig.build.json && node scripts/prepare-cjs-types.mjs",
     "example:manual:iframe": "vite playground/manual/iframe --host 127.0.0.1 --port 5174 --strictPort",

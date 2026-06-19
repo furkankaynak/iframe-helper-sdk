@@ -6,3 +6,8 @@ dist/
 AGENTS.md
 CLAUDE.md
 .docs/
+
+# Docusaurus documentation site
+documentation/node_modules/
+documentation/.docusaurus/
+documentation/build/
