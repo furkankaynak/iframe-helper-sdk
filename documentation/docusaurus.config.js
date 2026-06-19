@@ -3,6 +3,12 @@ import { themes as prismThemes } from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 export default {
   title: 'Iframe Helper SDK',
+  markdown: {
+    mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
   tagline: 'Secure cross-domain iframe embedding for modern web applications',
   favicon: 'img/favicon.ico',
 
@@ -14,7 +20,6 @@ export default {
   deploymentBranch: 'gh-pages',
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
