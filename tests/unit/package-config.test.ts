@@ -72,6 +72,22 @@ describe('production package configuration', () => {
     expect(prepareCjsTypes).not.toContain('.map');
     expect(prepareCjsTypes).not.toContain('sourceMappingURL');
   });
+
+  test('uses current npm trusted publishing workflow settings', async () => {
+    const publishWorkflow = await readFile(
+      join(projectRoot, '.github', 'workflows', 'publish.yml'),
+      'utf8',
+    );
+
+    expect(publishWorkflow).toContain('workflow_dispatch:');
+    expect(publishWorkflow).toContain('id-token: write');
+    expect(publishWorkflow).toContain('actions/checkout@v6');
+    expect(publishWorkflow).toContain('actions/setup-node@v6');
+    expect(publishWorkflow).toContain('node-version: 24');
+    expect(publishWorkflow).toContain('package-manager-cache: false');
+    expect(publishWorkflow).toContain('npm publish --access public');
+    expect(publishWorkflow).not.toContain('--provenance');
+  });
 });
 
 async function readJson(filePath: string): Promise<Record<string, unknown>> {
