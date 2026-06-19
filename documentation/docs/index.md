@@ -56,7 +56,7 @@ Instead of raw `postMessage`, you get a bridge instance bound to one iframe, one
 ## At a Glance
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',

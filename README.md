@@ -1,9 +1,7 @@
 # Iframe Helper SDK
 
-[![npm version](https://img.shields.io/npm/v/iframe-helper-sdk)](https://www.npmjs.com/package/iframe-helper-sdk)
-[![license](https://img.shields.io/npm/l/iframe-helper-sdk)](./LICENSE)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/iframe-helper-sdk)](https://bundlephobia.com/package/iframe-helper-sdk)
-[![node](https://img.shields.io/node/v/iframe-helper-sdk)](https://nodejs.org/)
+[![GitHub release](https://img.shields.io/github/v/release/furkankaynak/iframe-helper-sdk)](https://github.com/furkankaynak/iframe-helper-sdk/releases)
+[![license](https://img.shields.io/github/license/furkankaynak/iframe-helper-sdk)](./LICENSE)
 
 **Secure, structured communication between a parent page and cross-domain iframes.**
 
@@ -23,7 +21,7 @@ Embed iframes from separate origins without reaching for `window.postMessage` di
 ## Quick Start
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -39,15 +37,15 @@ Three steps: create a bridge, wait for the iframe to say it's ready, start sendi
 ## Installation
 
 ```bash
-npm install iframe-helper-sdk
+npm install @furkankaynak/iframe-helper-sdk
 ```
 
 ```bash
-yarn add iframe-helper-sdk
+yarn add @furkankaynak/iframe-helper-sdk
 ```
 
 ```bash
-pnpm add iframe-helper-sdk
+pnpm add @furkankaynak/iframe-helper-sdk
 ```
 
 TypeScript types are included — no separate `@types/` package needed. Requires Node.js 18+ at build time; at runtime the SDK targets ES2020 browsers.
@@ -81,7 +79,7 @@ The bridge exposes four communication primitives:
 For integrations with many methods, define a contract map once and get full TypeScript narrowing everywhere:
 
 ```ts
-import { createTypedIframeBridge } from 'iframe-helper-sdk';
+import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 type Contract = {
   requests: {
@@ -120,7 +118,7 @@ This is **compile-time only** — the runtime wire protocol is identical to `cre
 Every API that can fail throws an `IframeBridgeError` with a structured `code` property you can branch on:
 
 ```ts
-import { IframeBridgeError } from 'iframe-helper-sdk';
+import { IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 try {
   const user = await bridge.request('user:get', { id: '123' });

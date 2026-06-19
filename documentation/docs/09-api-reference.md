@@ -53,7 +53,7 @@ import {
   isBridgeEnvelope,
   normalizeBridgeRemoteError,
   validateBridgeEnvelope,
-} from 'iframe-helper-sdk';
+} from '@furkankaynak/iframe-helper-sdk';
 
 import type {
   BridgeEnvelope,
@@ -66,7 +66,7 @@ import type {
   IframeBridgeSecurityProfile,
   OperationOptions,
   TypedIframeBridge,
-} from 'iframe-helper-sdk';
+} from '@furkankaynak/iframe-helper-sdk';
 ```
 
 ---
@@ -91,7 +91,7 @@ Creates and returns a new bridge instance. The factory performs these steps sync
 The returned bridge is in `waiting_for_handshake` state and begins listening for `bridge:ready` from the iframe.
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -128,7 +128,7 @@ function createTypedIframeBridge<TContract extends IframeBridgeContract>(
 Creates a bridge instance with compile-time type narrowing. The runtime behavior is identical to `createIframeBridge` — the generic contract parameter only affects TypeScript types. See [Type-Safe Bridge](#type-safe-bridge) for the full contract API and examples.
 
 ```ts
-import { createTypedIframeBridge } from 'iframe-helper-sdk';
+import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createTypedIframeBridge<PartnerContract>({
   container: '#partner-frame',
@@ -681,7 +681,7 @@ class IframeBridgeError extends Error {
 Every error thrown by the SDK is an instance of `IframeBridgeError`. Use `instanceof` to distinguish SDK errors from other exceptions in catch blocks.
 
 ```ts
-import { IframeBridgeError } from 'iframe-helper-sdk';
+import { IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 try {
   const result = await bridge.request('user:get', { id: '123' });
@@ -750,7 +750,7 @@ function createDiagnosticRecorder(
 Creates a diagnostic recorder for collecting bridge events during development and debugging. Pass its `logger` to the bridge's `diagnostics.logger` config, then inspect `recorder.entries` after operations complete.
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -819,7 +819,7 @@ import {
   BRIDGE_MESSAGE_TYPES,
   BRIDGE_PROTOCOL_NAME,
   BRIDGE_PROTOCOL_VERSION,
-} from 'iframe-helper-sdk';
+} from '@furkankaynak/iframe-helper-sdk';
 ```
 
 | Constant | Type | Value |
@@ -831,7 +831,7 @@ import {
 ### Validation Functions
 
 ```ts
-import { isBridgeEnvelope, validateBridgeEnvelope, normalizeBridgeRemoteError } from 'iframe-helper-sdk';
+import { isBridgeEnvelope, validateBridgeEnvelope, normalizeBridgeRemoteError } from '@furkankaynak/iframe-helper-sdk';
 ```
 
 #### `isBridgeEnvelope(value)`

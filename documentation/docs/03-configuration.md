@@ -787,7 +787,7 @@ Receives error diagnostics for observable runtime issues — for example, when a
 For local debugging and manual examples, `createDiagnosticRecorder` provides a convenience wrapper that collects diagnostic events into an array:
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 

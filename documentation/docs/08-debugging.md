@@ -23,7 +23,7 @@ Cross-domain iframes are opaque by design — you can't open the browser's devto
 import {
   createDiagnosticRecorder,
   createIframeBridge,
-} from 'iframe-helper-sdk';
+} from '@furkankaynak/iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -128,8 +128,8 @@ Each hook is optional. If a hook is missing, events at that level are silently d
 ### Console logger
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
-import type { DiagnosticEvent } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import type { DiagnosticEvent } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#frame-root',

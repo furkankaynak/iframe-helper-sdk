@@ -17,7 +17,7 @@ Yes. The SDK is framework-agnostic. It only needs a DOM element (or selector) an
 
 ```ts
 // Inside any framework lifecycle
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-root',
@@ -167,13 +167,13 @@ The SDK is browser-only. It calls `document.querySelector`, creates `HTMLIFrameE
 
 ```tsx
 import { useEffect, useRef } from 'react';
-import type { IframeBridge } from 'iframe-helper-sdk';
+import type { IframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 export default function PartnerPage() {
   const bridgeRef = useRef<IframeBridge | null>(null);
 
   useEffect(() => {
-    const { createIframeBridge } = require('iframe-helper-sdk');
+    const { createIframeBridge } = require('@furkankaynak/iframe-helper-sdk');
     bridgeRef.current = createIframeBridge({
       container: '#partner-frame',
       src: 'https://partner.example/app',
@@ -267,7 +267,7 @@ window.addEventListener('message', (event) => {
 After:
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#frame-root',

@@ -45,7 +45,7 @@ For a reference of every error code and its recovery action, see [Error Codes](.
    import {
      createIframeBridge,
      createDiagnosticRecorder,
-   } from 'iframe-helper-sdk';
+   } from '@furkankaynak/iframe-helper-sdk';
 
    const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -344,7 +344,7 @@ Each bridge instance generates a unique session id and validates it on every inb
 ### Verifying isolation
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const recA = createDiagnosticRecorder({ maxEntries: 50 });
 const recB = createDiagnosticRecorder({ maxEntries: 50 });

@@ -18,7 +18,7 @@ The base `createIframeBridge()` API gives you method-level generics — every ca
 With the base `createIframeBridge()`, you supply type parameters on each call:
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -51,8 +51,8 @@ This gives you full type safety on each individual call. But the compiler can't 
 Define the bridge's full interface once as a type, then pass it to `createTypedIframeBridge`. The compiler checks every method name, payload shape, and return type against that contract.
 
 ```ts
-import { createTypedIframeBridge } from 'iframe-helper-sdk';
-import type { IframeBridgeContract } from 'iframe-helper-sdk';
+import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import type { IframeBridgeContract } from '@furkankaynak/iframe-helper-sdk';
 
 type PartnerContract = {
   requests: {
@@ -278,7 +278,7 @@ When the parent and iframe teams both use TypeScript, extract the contract into 
 
 ```ts
 // @partner/shared-contracts
-import type { IframeBridgeContract } from 'iframe-helper-sdk';
+import type { IframeBridgeContract } from '@furkankaynak/iframe-helper-sdk';
 
 export type PartnerContract = {
   requests: {

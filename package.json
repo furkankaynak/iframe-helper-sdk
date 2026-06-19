@@ -1,9 +1,16 @@
 {
-  "name": "iframe-helper-sdk",
-  "version": "0.0.0",
+  "name": "@furkankaynak/iframe-helper-sdk",
+  "version": "0.1.0",
   "description": "Parent-side TypeScript SDK for mounting cross-domain iframes with an isolated bridge.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/furkankaynak/iframe-helper-sdk.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/types/index.d.ts",

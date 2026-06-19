@@ -16,11 +16,11 @@ This guide gets you from an empty file to a working iframe bridge with typed req
 The SDK ships as a single ESM package with zero runtime dependencies.
 
 ```bash npm2yarn
-npm install iframe-helper-sdk
+npm install @furkankaynak/iframe-helper-sdk
 ```
 
 ```bash
-pnpm add iframe-helper-sdk
+pnpm add @furkankaynak/iframe-helper-sdk
 ```
 
 TypeScript types are included — no separate `@types/` package needed. The runtime payload is about **2 KB gzipped** and tree-shakable.
@@ -32,7 +32,7 @@ TypeScript types are included — no separate `@types/` package needed. The runt
 Import the factory and call it with the two required options: a mount target and an iframe URL.
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -205,7 +205,7 @@ console.log(status.ready);
 For integrations with many methods, per-call generics can get repetitive. `createTypedIframeBridge` lets you define a **contract map** once and get full TypeScript narrowing everywhere:
 
 ```ts
-import { createTypedIframeBridge } from 'iframe-helper-sdk';
+import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 type Contract = {
   requests: {

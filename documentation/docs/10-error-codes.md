@@ -16,7 +16,7 @@ If you're stuck on a specific problem, start with the [Troubleshooting](./troubl
 ## IframeBridgeError
 
 ```ts
-import { IframeBridgeError } from 'iframe-helper-sdk';
+import { IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 class IframeBridgeError extends Error {
   readonly code: IframeBridgeErrorCode;
@@ -114,7 +114,7 @@ try {
 Or use the `normalizeBridgeRemoteError` helper:
 
 ```ts
-import { normalizeBridgeRemoteError, IframeBridgeError } from 'iframe-helper-sdk';
+import { normalizeBridgeRemoteError, IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 try {
   await bridge.request('user:get', { id: '123' });
@@ -172,7 +172,7 @@ Message errors occur at the transport/envelope level — before a message reache
 The `code` property lets you handle different errors differently:
 
 ```ts
-import { createIframeBridge, IframeBridgeError } from 'iframe-helper-sdk';
+import { createIframeBridge, IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 try {
   const bridge = createIframeBridge({
@@ -260,7 +260,7 @@ try {
 Since config errors are synchronous, wrap only the factory call:
 
 ```ts
-import { createIframeBridge, IframeBridgeError } from 'iframe-helper-sdk';
+import { createIframeBridge, IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
 
 let bridge;
 try {

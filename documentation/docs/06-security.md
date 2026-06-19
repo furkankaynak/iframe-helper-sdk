@@ -102,7 +102,7 @@ The `securityProfile` option controls how aggressively the SDK enforces security
 - **Experimentation and manual playgrounds.**
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
+import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
 
 // Production: fail fast on unsafe configs
 const bridge = createIframeBridge({
