@@ -1,5 +1,5 @@
 {
-  "name": "@furkankaynak/iframe-helper-sdk",
+  "name": "iframe-helper-sdk",
   "version": "0.1.0",
   "description": "Parent-side TypeScript SDK for mounting cross-domain iframes with an isolated bridge.",
   "type": "module",
@@ -9,7 +9,7 @@
     "url": "git+https://github.com/furkankaynak/iframe-helper-sdk.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -50,8 +50,8 @@
     "types:check": "attw --pack .",
     "pack:check": "npm pack --dry-run",
     "verify": "npm run typecheck && npm run test && npm run lint && npm run format:check && npm run build && npm run publint && npm run types:check && npm run pack:check",
-    "format": "prettier --write .prettierrc package.json package-lock.json README.md docs playground scripts tests \"tsconfig*.json\" \"*.config.*\" src",
-    "format:check": "prettier --check .prettierrc package.json package-lock.json README.md docs playground scripts tests \"tsconfig*.json\" \"*.config.*\" src"
+    "format": "prettier --write .prettierrc package.json package-lock.json README.md documentation/docs documentation/docusaurus.config.js documentation/sidebars.js documentation/package.json documentation/package-lock.json documentation/src playground scripts tests \"tsconfig*.json\" \"*.config.*\" src",
+    "format:check": "prettier --check .prettierrc package.json package-lock.json README.md documentation/docs documentation/docusaurus.config.js documentation/sidebars.js documentation/package.json documentation/package-lock.json documentation/src playground scripts tests \"tsconfig*.json\" \"*.config.*\" src"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.3",

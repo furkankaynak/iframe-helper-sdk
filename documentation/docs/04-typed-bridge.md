@@ -18,7 +18,7 @@ The base `createIframeBridge()` API gives you method-level generics — every ca
 With the base `createIframeBridge()`, you supply type parameters on each call:
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -28,10 +28,7 @@ const bridge = createIframeBridge({
 await bridge.whenReady();
 
 // Every call site must repeat the payload and response types
-const user = await bridge.request<{ id: string }, { name: string }>(
-  'user:get',
-  { id: '123' },
-);
+const user = await bridge.request<{ id: string }, { name: string }>('user:get', { id: '123' });
 
 await bridge.sendEvent<{ action: string }>('analytics:track', {
   action: 'opened',
@@ -51,8 +48,8 @@ This gives you full type safety on each individual call. But the compiler can't 
 Define the bridge's full interface once as a type, then pass it to `createTypedIframeBridge`. The compiler checks every method name, payload shape, and return type against that contract.
 
 ```ts
-import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
-import type { IframeBridgeContract } from '@furkankaynak/iframe-helper-sdk';
+import { createTypedIframeBridge } from 'iframe-helper-sdk';
+import type { IframeBridgeContract } from 'iframe-helper-sdk';
 
 type PartnerContract = {
   requests: {
@@ -223,14 +220,14 @@ This means you can safely destroy and recreate a bridge in error-recovery flows 
 
 ## When to Use Which
 
-| Scenario | Use |
-|---|---|
-| Single iframe, 1–3 methods | `createIframeBridge` with per-call generics |
-| Bridge surface grows beyond 4–5 methods | `createTypedIframeBridge` with a contract map |
-| Multiple iframes sharing the same contract | `createTypedIframeBridge` — define the contract once, reuse it |
-| Contract lives in a shared types package | `createTypedIframeBridge` — import the contract type and pass it |
+| Scenario                                                   | Use                                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| Single iframe, 1–3 methods                                 | `createIframeBridge` with per-call generics                           |
+| Bridge surface grows beyond 4–5 methods                    | `createTypedIframeBridge` with a contract map                         |
+| Multiple iframes sharing the same contract                 | `createTypedIframeBridge` — define the contract once, reuse it        |
+| Contract lives in a shared types package                   | `createTypedIframeBridge` — import the contract type and pass it      |
 | Team wants a single source of truth for the bridge surface | `createTypedIframeBridge` — the contract type serves as documentation |
-| Rapid prototyping or exploration | `createIframeBridge` — no upfront type definition needed |
+| Rapid prototyping or exploration                           | `createIframeBridge` — no upfront type definition needed              |
 
 You can also use both in the same project. Different iframe integrations have different complexity — choose the right API for each one.
 
@@ -278,7 +275,7 @@ When the parent and iframe teams both use TypeScript, extract the contract into 
 
 ```ts
 // @partner/shared-contracts
-import type { IframeBridgeContract } from '@furkankaynak/iframe-helper-sdk';
+import type { IframeBridgeContract } from 'iframe-helper-sdk';
 
 export type PartnerContract = {
   requests: {
@@ -303,9 +300,7 @@ The iframe team can then extract types from the same contract for their internal
 // Iframe-side (does not import iframe-helper-sdk)
 type Requests = PartnerContract['requests'];
 
-function handleUserGet(
-  payload: Requests['user:get']['payload'],
-): Requests['user:get']['response'] {
+function handleUserGet(payload: Requests['user:get']['payload']): Requests['user:get']['response'] {
   return { name: payload.id }; // type-safe
 }
 ```
@@ -343,7 +338,10 @@ type Contract = {
 ### Step 3: Switch the factory
 
 ```ts
-const bridge = createTypedIframeBridge<Contract>({ container: '#root', src: 'https://partner.example/app' });
+const bridge = createTypedIframeBridge<Contract>({
+  container: '#root',
+  src: 'https://partner.example/app',
+});
 ```
 
 ### Step 4: Remove per-call generics

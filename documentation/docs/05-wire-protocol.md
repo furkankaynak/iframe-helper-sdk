@@ -65,23 +65,23 @@ type BridgeEnvelope =
 
 ### Base fields (every message)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `protocol` | `'iframe-bridge'` | Protocol namespace. Messages with any other value are silently ignored. |
-| `version` | `1` | Protocol version. The parent rejects versions other than `1`. |
-| `sessionId` | `string` | Correlation value from the iframe URL (`__iframeBridgeSessionId`). Must be non-empty and match the parent's session. Not a secret — treat it as routing metadata only. |
-| `type` | `BridgeMessageType` | One of five message types (see below). Unknown types are rejected. |
+| Field       | Type                | Description                                                                                                                                                            |
+| ----------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `protocol`  | `'iframe-bridge'`   | Protocol namespace. Messages with any other value are silently ignored.                                                                                                |
+| `version`   | `1`                 | Protocol version. The parent rejects versions other than `1`.                                                                                                          |
+| `sessionId` | `string`            | Correlation value from the iframe URL (`__iframeBridgeSessionId`). Must be non-empty and match the parent's session. Not a secret — treat it as routing metadata only. |
+| `type`      | `BridgeMessageType` | One of five message types (see below). Unknown types are rejected.                                                                                                     |
 
 The parent validates **all four** base fields before inspecting any variant-specific fields. If any base field is missing, wrong, or invalid, the message is treated as `MESSAGE_INVALID_ENVELOPE` and discarded.
 
 ### Variant-specific fields
 
-| field | Required on | Description |
-|-------|-------------|-------------|
-| `name` | `bridge:event`, `bridge:request` | Application-level event or request name. Must be a non-empty string. |
-| `requestId` | `bridge:request`, `bridge:response` | Unique id that pairs a request with its response. Must be a non-empty string. |
-| `payload` | All (optional) | Application data. Must be [structured-cloneable](#structured-clone-data). Optional on all message types. |
-| `error` | `bridge:response` (optional) | Remote error object. When present, `code` and `message` must be non-empty strings. `data` is optional and preserved if present. |
+| field       | Required on                         | Description                                                                                                                     |
+| ----------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `name`      | `bridge:event`, `bridge:request`    | Application-level event or request name. Must be a non-empty string.                                                            |
+| `requestId` | `bridge:request`, `bridge:response` | Unique id that pairs a request with its response. Must be a non-empty string.                                                   |
+| `payload`   | All (optional)                      | Application data. Must be [structured-cloneable](#structured-clone-data). Optional on all message types.                        |
+| `error`     | `bridge:response` (optional)        | Remote error object. When present, `code` and `message` must be non-empty strings. `data` is optional and preserved if present. |
 
 :::warning
 The parent SDK enforces these validation rules at runtime. A message that passes your hand-rolled `isBridgeEnvelope()` check may still be rejected if `name` is empty on an event, `requestId` is missing on a request, or the remote error `code` or `message` is empty.
@@ -93,13 +93,13 @@ The parent SDK enforces these validation rules at runtime. A message that passes
 
 The protocol has exactly five message types. The parent SDK exports them as `BRIDGE_MESSAGE_TYPES` for reference.
 
-| Type | Direction | Purpose |
-|------|-----------|---------|
-| `bridge:ready` | Iframe → Parent | "I am loaded and ready to communicate." Starts the handshake. |
-| `bridge:connected` | Parent → Iframe | "Handshake accepted." Sent exactly once after the first valid ready. |
-| `bridge:event` | Both | Fire-and-forget named event with optional payload. |
-| `bridge:request` | Parent → Iframe | Named operation that expects a `bridge:response` with the same `requestId`. |
-| `bridge:response` | Iframe → Parent | Response to a parent-initiated request. May carry a payload or an error. |
+| Type               | Direction       | Purpose                                                                     |
+| ------------------ | --------------- | --------------------------------------------------------------------------- |
+| `bridge:ready`     | Iframe → Parent | "I am loaded and ready to communicate." Starts the handshake.               |
+| `bridge:connected` | Parent → Iframe | "Handshake accepted." Sent exactly once after the first valid ready.        |
+| `bridge:event`     | Both            | Fire-and-forget named event with optional payload.                          |
+| `bridge:request`   | Parent → Iframe | Named operation that expects a `bridge:response` with the same `requestId`. |
+| `bridge:response`  | Iframe → Parent | Response to a parent-initiated request. May carry a payload or an error.    |
 
 :::note
 The parent SDK does not handle iframe-initiated `bridge:request` in the current version. The envelope type is reserved in the protocol for future use, but MVP behavior only supports parent-to-iframe requests.
@@ -160,7 +160,7 @@ const parentOrigin = params.get('__iframeBridgeParentOrigin');
 if (sessionId && parentOrigin) {
   window.parent.postMessage(
     { protocol: 'iframe-bridge', version: 1, sessionId, type: 'bridge:ready' },
-    parentOrigin
+    parentOrigin,
   );
 }
 ```
@@ -182,7 +182,7 @@ The first message your iframe sends. No payload. The parent accepts exactly one 
 ```js
 window.parent.postMessage(
   { protocol: 'iframe-bridge', version: 1, sessionId, type: 'bridge:ready' },
-  parentOrigin
+  parentOrigin,
 );
 ```
 
@@ -225,7 +225,7 @@ window.parent.postMessage(
     name: 'cart:changed',
     payload: { itemCount: 3 },
   },
-  parentOrigin
+  parentOrigin,
 );
 ```
 
@@ -258,7 +258,7 @@ if (envelope.type === 'bridge:request') {
         requestId: envelope.requestId,
         payload: { id: envelope.payload?.id, name: 'Ada' },
       },
-      parentOrigin
+      parentOrigin,
     );
   } else {
     // Error response
@@ -274,7 +274,7 @@ if (envelope.type === 'bridge:request') {
           message: `Unknown method ${envelope.name}`,
         },
       },
-      parentOrigin
+      parentOrigin,
     );
   }
 }
@@ -290,11 +290,11 @@ Your iframe's reply to a parent request. Include `payload` for successful respon
 
 **Remote error shape:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `code` | `string` | Yes | Machine-readable error code (e.g., `'UNKNOWN_METHOD'`, `'VALIDATION_ERROR'`). |
-| `message` | `string` | Yes | Human-readable description. |
-| `data` | `unknown` | No | Optional error context. Preserved as-is. |
+| Field     | Type      | Required | Description                                                                   |
+| --------- | --------- | -------- | ----------------------------------------------------------------------------- |
+| `code`    | `string`  | Yes      | Machine-readable error code (e.g., `'UNKNOWN_METHOD'`, `'VALIDATION_ERROR'`). |
+| `message` | `string`  | Yes      | Human-readable description.                                                   |
+| `data`    | `unknown` | No       | Optional error context. Preserved as-is.                                      |
 
 :::note
 The parent only accepts the **first response** for each `requestId`. If your iframe responds twice to the same request, the second response is silently ignored.
@@ -310,9 +310,9 @@ This is the minimum implementation your iframe application needs to successfully
 
 The parent appends two parameters to your iframe URL. Read them from `window.location.search` (default) or `window.location.hash` (if the parent configured `location: 'hash'`).
 
-| Parameter | Default name | Value |
-|-----------|-------------|-------|
-| Session id | `__iframeBridgeSessionId` | Random correlation string. Echo it on every message you send. |
+| Parameter     | Default name                 | Value                                                                                |
+| ------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Session id    | `__iframeBridgeSessionId`    | Random correlation string. Echo it on every message you send.                        |
 | Parent origin | `__iframeBridgeParentOrigin` | The exact origin you must target with `postMessage()` (e.g., `https://example.com`). |
 
 ```js
@@ -333,7 +333,7 @@ Send this as early as your app is ready — but only if both bootstrap parameter
 if (sessionId && parentOrigin) {
   window.parent.postMessage(
     { protocol: 'iframe-bridge', version: 1, sessionId, type: 'bridge:ready' },
-    parentOrigin
+    parentOrigin,
   );
 }
 ```
@@ -388,7 +388,7 @@ function postToParent(message) {
       sessionId,
       ...message,
     },
-    parentOrigin
+    parentOrigin,
   );
 }
 ```
@@ -447,7 +447,11 @@ The browser's `postMessage` API uses the [structured clone algorithm](https://de
 postToParent({ type: 'bridge:event', name: 'cart:changed', payload: { itemCount: 3 } });
 
 // fine — arrays, Dates, Maps
-postToParent({ type: 'bridge:event', name: 'report', payload: { items: ['a', 'b'], createdAt: new Date() } });
+postToParent({
+  type: 'bridge:event',
+  name: 'report',
+  payload: { items: ['a', 'b'], createdAt: new Date() },
+});
 
 // broken — includes a function
 postToParent({ type: 'bridge:event', name: 'bad', payload: { onClick() {} } });
@@ -467,6 +471,7 @@ The protocol defines clear rules for handling repeated or late messages. The par
 ### Duplicate `bridge:ready`
 
 The parent accepts **only the first valid `bridge:ready`** per bridge instance. Duplicate ready messages:
+
 - Do not send another `bridge:connected`
 - Do not flush the pre-ready queue again
 - Do not change bridge state

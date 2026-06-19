@@ -51,14 +51,14 @@ stateDiagram-v2
 
 ### What you can do in each state
 
-| State | Bridge operations | What the SDK is doing |
-|---|---|---|
-| `created` | `destroy()` only | Config validated, bridge object returned. Iframe not yet created. |
-| `mounting` | `destroy()` only | Iframe element built, attributes assigned, `src` about to be set. Listeners not yet installed. |
+| State                   | Bridge operations                                                                | What the SDK is doing                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `created`               | `destroy()` only                                                                 | Config validated, bridge object returned. Iframe not yet created.                                    |
+| `mounting`              | `destroy()` only                                                                 | Iframe element built, attributes assigned, `src` about to be set. Listeners not yet installed.       |
 | `waiting_for_handshake` | `request()`, `sendEvent()`, `waitForEvent()`, `on()`, `whenReady()`, `destroy()` | Listener installed, iframe loading. Operations go into the pre-ready queue. Handshake timer ticking. |
-| `ready` | All operations | Bridge operational. Queue flushed. Messages flowing. |
-| `handshake_failed` | `destroy()`, `remount()` only | Timer expired without a valid `bridge:ready`. Queued operations rejected. |
-| `destroyed` | None — all calls reject with `BRIDGE_DESTROYED` | Listeners removed, timers cleared, iframe detached. |
+| `ready`                 | All operations                                                                   | Bridge operational. Queue flushed. Messages flowing.                                                 |
+| `handshake_failed`      | `destroy()`, `remount()` only                                                    | Timer expired without a valid `bridge:ready`. Queued operations rejected.                            |
+| `destroyed`             | None — all calls reject with `BRIDGE_DESTROYED`                                  | Listeners removed, timers cleared, iframe detached.                                                  |
 
 :::tip[Why no `initializing` or `reconnecting` states?]
 
@@ -82,12 +82,12 @@ The bridge uses a **ready-first handshake**. The parent does not send an initiat
 
 The alternative — init-first — would have the parent send `bridge:init` and wait for the iframe to respond with `bridge:ready`. This creates several problems:
 
-| Concern | Init-first | Ready-first (this SDK) |
-|---|---|---|
-| Message ordering | Parent must send init before the iframe can act | Iframe declares readiness when it's actually ready |
-| Duplicate risk | Parent must guard against sending init twice | No init to duplicate; the iframe sends ready once |
-| Iframe unawareness | If the iframe ignores init, the parent has no way to know the init was received | If the iframe never sends ready, the timeout fires — unambiguous failure |
-| Bootstrap dependency | Iframe must wait for an inbound message before it can act | Iframe reads bootstrap params from its URL and fires ready immediately |
+| Concern              | Init-first                                                                      | Ready-first (this SDK)                                                   |
+| -------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Message ordering     | Parent must send init before the iframe can act                                 | Iframe declares readiness when it's actually ready                       |
+| Duplicate risk       | Parent must guard against sending init twice                                    | No init to duplicate; the iframe sends ready once                        |
+| Iframe unawareness   | If the iframe ignores init, the parent has no way to know the init was received | If the iframe never sends ready, the timeout fires — unambiguous failure |
+| Bootstrap dependency | Iframe must wait for an inbound message before it can act                       | Iframe reads bootstrap params from its URL and fires ready immediately   |
 
 The ready-first model means the iframe integration always controls its own readiness. The parent's job is to wait, validate, and respond with `bridge:connected`.
 
@@ -183,12 +183,12 @@ Use for events the iframe may send at any time and any number of times — statu
 
 ### When to use which
 
-| You want to... | Use |
-|---|---|
-| Ask the iframe a question and get an answer | `request()` |
-| Notify the iframe of something, no reply needed | `sendEvent()` |
-| Wait for a specific one-time event from the iframe | `waitForEvent()` |
-| React to every occurrence of an event from the iframe | `on()` |
+| You want to...                                        | Use              |
+| ----------------------------------------------------- | ---------------- |
+| Ask the iframe a question and get an answer           | `request()`      |
+| Notify the iframe of something, no reply needed       | `sendEvent()`    |
+| Wait for a specific one-time event from the iframe    | `waitForEvent()` |
+| React to every occurrence of an event from the iframe | `on()`           |
 
 ---
 
@@ -232,11 +232,11 @@ The SDK enforces **exact origin matching** on every message. This is the foundat
 
 ### How origins are derived
 
-| Config field | Default derivation | Purpose |
-|---|---|---|
-| `targetOrigin` | `new URL(src).origin` | Origin used for parent-to-iframe `postMessage` calls |
-| `allowedOrigin` | `new URL(src).origin` | Origin accepted for iframe-to-parent messages |
-| `src` | (required, no default) | URL loaded into the iframe |
+| Config field    | Default derivation     | Purpose                                              |
+| --------------- | ---------------------- | ---------------------------------------------------- |
+| `targetOrigin`  | `new URL(src).origin`  | Origin used for parent-to-iframe `postMessage` calls |
+| `allowedOrigin` | `new URL(src).origin`  | Origin accepted for iframe-to-parent messages        |
+| `src`           | (required, no default) | URL loaded into the iframe                           |
 
 You can set `targetOrigin` and `allowedOrigin` explicitly when the iframe redirects to a different origin or when you want to document the expected origin in code.
 
@@ -258,15 +258,15 @@ Both mismatches produce timeout errors, not origin-mismatch errors. The SDK cann
 
 Each bridge instance is fully isolated from every other bridge instance on the page.
 
-| What's isolated | How |
-|---|---|
-| **Message routing** | Inbound `message` events are validated against `event.source` — only messages from the owned iframe window are accepted for that bridge. |
-| **Session ids** | Each bridge generates its own unique session id. Messages with a different session id are ignored. |
-| **Pre-ready queue** | Each bridge has its own bounded queue. A full queue on one bridge does not affect another. |
-| **Lifecycle state** | Each bridge moves through its own state machine independently. |
-| **Pending operations** | Timers, abort signals, and pending promises are scoped to one bridge. |
-| **Event listeners** | `on()` subscriptions are per-bridge. Destroying one bridge does not affect listeners on another. |
-| **Cleanup** | Calling `destroy()` on one bridge removes only that bridge's listeners, timers, and iframe element. |
+| What's isolated        | How                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Message routing**    | Inbound `message` events are validated against `event.source` — only messages from the owned iframe window are accepted for that bridge. |
+| **Session ids**        | Each bridge generates its own unique session id. Messages with a different session id are ignored.                                       |
+| **Pre-ready queue**    | Each bridge has its own bounded queue. A full queue on one bridge does not affect another.                                               |
+| **Lifecycle state**    | Each bridge moves through its own state machine independently.                                                                           |
+| **Pending operations** | Timers, abort signals, and pending promises are scoped to one bridge.                                                                    |
+| **Event listeners**    | `on()` subscriptions are per-bridge. Destroying one bridge does not affect listeners on another.                                         |
+| **Cleanup**            | Calling `destroy()` on one bridge removes only that bridge's listeners, timers, and iframe element.                                      |
 
 This means you can mount multiple iframes and treat each one as an independent integration — no shared state, no accidental cross-talk, no cleanup interference.
 
@@ -283,20 +283,20 @@ await bridgeB.whenReady();
 
 ## Summary: What the SDK Does vs. What You Do
 
-| The SDK handles | You handle |
-|---|---|
-| Creating and mounting the iframe element | Providing a container element and iframe URL |
-| Generating session ids and appending bootstrap URL params | Customizing bootstrap param names/locations if needed |
-| Installing and managing `message` event listeners | Nothing — the listener is fully managed |
-| Validating `event.origin`, `event.source`, protocol, version, session, and envelope | Configuring exact `targetOrigin` / `allowedOrigin` |
-| Queueing pre-ready operations and flushing on handshake | Deciding whether to enable or disable the queue |
-| Enforcing per-operation timeouts and cleaning up timers | Configuring timeout values appropriate for your integration |
-| Rejecting queued/pending operations on handshake failure or destroy | Calling `destroy()` when the integration should end |
-| Surfaceing structured `IframeBridgeError` codes for branching | Catching errors and implementing recovery logic |
-| Emitting sanitized diagnostic events | Connecting diagnostic hooks to your logging |
-| **Nothing** related to authentication or authorization | Authenticating users, authorizing actions, applying server-side security |
-| **Nothing** related to CSP or server-side headers | Setting `frame-src` on the parent, `frame-ancestors` on the iframe |
-| **Nothing** related to iframe-side message handling | Implementing the raw wire protocol on the iframe side |
+| The SDK handles                                                                     | You handle                                                               |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Creating and mounting the iframe element                                            | Providing a container element and iframe URL                             |
+| Generating session ids and appending bootstrap URL params                           | Customizing bootstrap param names/locations if needed                    |
+| Installing and managing `message` event listeners                                   | Nothing — the listener is fully managed                                  |
+| Validating `event.origin`, `event.source`, protocol, version, session, and envelope | Configuring exact `targetOrigin` / `allowedOrigin`                       |
+| Queueing pre-ready operations and flushing on handshake                             | Deciding whether to enable or disable the queue                          |
+| Enforcing per-operation timeouts and cleaning up timers                             | Configuring timeout values appropriate for your integration              |
+| Rejecting queued/pending operations on handshake failure or destroy                 | Calling `destroy()` when the integration should end                      |
+| Surfaceing structured `IframeBridgeError` codes for branching                       | Catching errors and implementing recovery logic                          |
+| Emitting sanitized diagnostic events                                                | Connecting diagnostic hooks to your logging                              |
+| **Nothing** related to authentication or authorization                              | Authenticating users, authorizing actions, applying server-side security |
+| **Nothing** related to CSP or server-side headers                                   | Setting `frame-src` on the parent, `frame-ancestors` on the iframe       |
+| **Nothing** related to iframe-side message handling                                 | Implementing the raw wire protocol on the iframe side                    |
 
 ---
 

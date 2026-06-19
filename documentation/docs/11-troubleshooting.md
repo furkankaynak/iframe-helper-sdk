@@ -42,10 +42,7 @@ For a reference of every error code and its recovery action, see [Error Codes](.
 3. **Enable diagnostics and look for rejection reasons.**
 
    ```ts
-   import {
-     createIframeBridge,
-     createDiagnosticRecorder,
-   } from '@furkankaynak/iframe-helper-sdk';
+   import { createIframeBridge, createDiagnosticRecorder } from 'iframe-helper-sdk';
 
    const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -69,12 +66,12 @@ For a reference of every error code and its recovery action, see [Error Codes](.
 
 4. **Messages received but rejected?** Match the diagnostic code to the fix:
 
-   | Diagnostic code | What happened | Fix |
-   |---|---|---|
-   | `MESSAGE_ORIGIN_MISMATCH` | Message came from an origin that doesn't match `allowedOrigin`. | See [Origin mismatch](#origin-mismatch) below. |
-   | `MESSAGE_SESSION_MISMATCH` | Session id in the message doesn't match this bridge instance. | See [Handshake timeout](#handshake-timeout) — the iframe isn't echoing the correct session. |
-   | `MESSAGE_SOURCE_MISMATCH` | Message came from a window that isn't the owned iframe. | Another iframe or script is posting messages. Check for multiple bridges or nested iframes. |
-   | `MESSAGE_INVALID_ENVELOPE` | Message matched transport but envelope shape is wrong. | The iframe's envelope doesn't match the [wire protocol spec](./wire-protocol#envelope). Check `protocol`, `version`, `type`, and required fields. |
+   | Diagnostic code            | What happened                                                   | Fix                                                                                                                                               |
+   | -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `MESSAGE_ORIGIN_MISMATCH`  | Message came from an origin that doesn't match `allowedOrigin`. | See [Origin mismatch](#origin-mismatch) below.                                                                                                    |
+   | `MESSAGE_SESSION_MISMATCH` | Session id in the message doesn't match this bridge instance.   | See [Handshake timeout](#handshake-timeout) — the iframe isn't echoing the correct session.                                                       |
+   | `MESSAGE_SOURCE_MISMATCH`  | Message came from a window that isn't the owned iframe.         | Another iframe or script is posting messages. Check for multiple bridges or nested iframes.                                                       |
+   | `MESSAGE_INVALID_ENVELOPE` | Message matched transport but envelope shape is wrong.          | The iframe's envelope doesn't match the [wire protocol spec](./wire-protocol#envelope). Check `protocol`, `version`, `type`, and required fields. |
 
 5. **No messages at all in diagnostics?**
    - The iframe never called `postMessage`. Verify it reads the bootstrap parameters and knows the parent origin.
@@ -102,16 +99,21 @@ If you control the iframe application, verify each of these in order:
 2. **The iframe knows the parent origin.** It gets this from the `__iframeBridgeParentOrigin` query parameter (or from its own trusted configuration). The parent origin is the URL origin of the page that embeds the iframe — e.g., `https://app.example.com`.
 
 3. **The iframe sends `bridge:ready` to the correct target.** `postMessage` must target the exact parent origin:
+
    ```ts
    // Inside the iframe
    const parentOrigin = new URLSearchParams(location.search).get('__iframeBridgeParentOrigin');
-   window.parent.postMessage({
-     protocol: 'iframe-bridge',
-     version: 1,
-     sessionId: sessionId,
-     type: 'bridge:ready',
-   }, parentOrigin);
+   window.parent.postMessage(
+     {
+       protocol: 'iframe-bridge',
+       version: 1,
+       sessionId: sessionId,
+       type: 'bridge:ready',
+     },
+     parentOrigin,
+   );
    ```
+
    The second argument to `postMessage` must be the exact parent origin string — never `'*'`.
 
 4. **The session id is echoed correctly.** The `sessionId` field in the envelope must match the value from the URL parameter `__iframeBridgeSessionId`.
@@ -128,10 +130,10 @@ If you control the iframe application, verify each of these in order:
 
 These are separate timers:
 
-| Timer | Configured via | Default | Controls |
-|---|---|---|---|
-| Handshake timeout | `bootstrap.handshakeTimeoutMs` | 10s | How long the parent waits for the first valid `bridge:ready`. |
-| Operation timeout | `timeouts.operationTimeoutMs` or per-call `timeoutMs` | 5s | How long individual `request()` or `waitForEvent()` calls wait after the handshake. |
+| Timer             | Configured via                                        | Default | Controls                                                                            |
+| ----------------- | ----------------------------------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| Handshake timeout | `bootstrap.handshakeTimeoutMs`                        | 10s     | How long the parent waits for the first valid `bridge:ready`.                       |
+| Operation timeout | `timeouts.operationTimeoutMs` or per-call `timeoutMs` | 5s      | How long individual `request()` or `waitForEvent()` calls wait after the handshake. |
 
 The operation timeout does **not** start during the handshake window. A request queued before readiness is only timed after the queue flushes and the request is sent. If the handshake fails, queued operations reject with `HANDSHAKE_TIMEOUT` — not `REQUEST_TIMEOUT`.
 
@@ -155,13 +157,13 @@ The SDK validates every inbound message against an exact origin. No wildcards. N
 
 ### Common origin mistakes
 
-| Mistake | What happens | Fix |
-|---|---|---|
-| `src` uses `http://localhost` without `allowInsecureLocalhost` | `CONFIG_UNSAFE_ORIGIN` thrown synchronously. | Set `allowInsecureLocalhost: true` for local development. |
-| Iframe redirects to a different origin | `allowedOrigin` derived from `src` doesn't match the redirect target. Inbound messages are rejected. | Set `allowedOrigin` and `targetOrigin` explicitly to the final origin. |
-| `targetOrigin` doesn't match the iframe's actual window origin | Parent-to-iframe `postMessage` calls are silently dropped by the browser. Operations time out with no response. | Set `targetOrigin` to the exact iframe window origin, or leave it unset to derive from `src.origin`. |
-| `allowedOrigin` and `targetOrigin` point to different origins | Inbound messages accepted from one origin, outbound sent to another. Communication is one-sided or broken. | In most cases, `allowedOrigin` and `targetOrigin` should be the same origin. Only set them to different values if you have a documented reason. |
-| Iframe sandbox omits `allow-same-origin` | `event.origin` becomes `'null'` — it will never match any `allowedOrigin` value. | If you need the sandbox and bridge together, you must include `allow-same-origin`. Review the [security implications](./security#sandbox) first. |
+| Mistake                                                        | What happens                                                                                                    | Fix                                                                                                                                              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src` uses `http://localhost` without `allowInsecureLocalhost` | `CONFIG_UNSAFE_ORIGIN` thrown synchronously.                                                                    | Set `allowInsecureLocalhost: true` for local development.                                                                                        |
+| Iframe redirects to a different origin                         | `allowedOrigin` derived from `src` doesn't match the redirect target. Inbound messages are rejected.            | Set `allowedOrigin` and `targetOrigin` explicitly to the final origin.                                                                           |
+| `targetOrigin` doesn't match the iframe's actual window origin | Parent-to-iframe `postMessage` calls are silently dropped by the browser. Operations time out with no response. | Set `targetOrigin` to the exact iframe window origin, or leave it unset to derive from `src.origin`.                                             |
+| `allowedOrigin` and `targetOrigin` point to different origins  | Inbound messages accepted from one origin, outbound sent to another. Communication is one-sided or broken.      | In most cases, `allowedOrigin` and `targetOrigin` should be the same origin. Only set them to different values if you have a documented reason.  |
+| Iframe sandbox omits `allow-same-origin`                       | `event.origin` becomes `'null'` — it will never match any `allowedOrigin` value.                                | If you need the sandbox and bridge together, you must include `allow-same-origin`. Review the [security implications](./security#sandbox) first. |
 
 :::warning Browser CSP can block messages
 
@@ -182,11 +184,11 @@ const bridge = createIframeBridge({
   diagnostics: { debug: true, logger: recorder.logger },
 });
 
-try { await bridge.whenReady(); } catch {}
+try {
+  await bridge.whenReady();
+} catch {}
 
-const mismatches = recorder.entries.filter(
-  (e) => e.code === 'MESSAGE_ORIGIN_MISMATCH'
-);
+const mismatches = recorder.entries.filter((e) => e.code === 'MESSAGE_ORIGIN_MISMATCH');
 console.table(mismatches);
 ```
 
@@ -236,17 +238,25 @@ A `bridge.request()` call rejects with `REQUEST_TIMEOUT`. The request was sent, 
 
 ```ts
 try {
-  const result = await bridge.request('data:fetch', { id: 'abc' }, {
-    timeoutMs: 8000,
-  });
+  const result = await bridge.request(
+    'data:fetch',
+    { id: 'abc' },
+    {
+      timeoutMs: 8000,
+    },
+  );
   console.log(result);
 } catch (error) {
   if (error instanceof IframeBridgeError && error.code === 'REQUEST_TIMEOUT') {
     // Option 1: retry with longer timeout
     try {
-      const result = await bridge.request('data:fetch', { id: 'abc' }, {
-        timeoutMs: 20000,
-      });
+      const result = await bridge.request(
+        'data:fetch',
+        { id: 'abc' },
+        {
+          timeoutMs: 20000,
+        },
+      );
       console.log(result);
     } catch (retryError) {
       console.error('Request failed after retry:', retryError);
@@ -263,14 +273,14 @@ You registered a listener with `bridge.on()` or called `bridge.waitForEvent()`, 
 
 ### `on()` vs `waitForEvent()` behavior
 
-| | `bridge.on(name, handler)` | `bridge.waitForEvent(name, opts?)` |
-|---|---|---|
-| **Fires** | Every time the event arrives | Only the next occurrence |
-| **Duration** | Continuous — until unsubscribed | One-shot — resolves or times out once |
-| **Timeout** | None | Per-operation timeout (default 5s) |
-| **Registration timing** | Can register before ready | Can register before ready (queued) |
-| **Dispatch** | Only when bridge is `'ready'` | Only when bridge is `'ready'` |
-| **Returns** | Unsubscribe function | `Promise<TPayload>` |
+|                         | `bridge.on(name, handler)`      | `bridge.waitForEvent(name, opts?)`    |
+| ----------------------- | ------------------------------- | ------------------------------------- |
+| **Fires**               | Every time the event arrives    | Only the next occurrence              |
+| **Duration**            | Continuous — until unsubscribed | One-shot — resolves or times out once |
+| **Timeout**             | None                            | Per-operation timeout (default 5s)    |
+| **Registration timing** | Can register before ready       | Can register before ready (queued)    |
+| **Dispatch**            | Only when bridge is `'ready'`   | Only when bridge is `'ready'`         |
+| **Returns**             | Unsubscribe function            | `Promise<TPayload>`                   |
 
 ### Common causes
 
@@ -281,6 +291,7 @@ You registered a listener with `bridge.on()` or called `bridge.waitForEvent()`, 
 3. **Bridge not ready.** Event listeners only dispatch inbound events when the bridge state is `'ready'`. If the bridge is still `'waiting_for_handshake'` or has entered `'handshake_failed'`, events are not delivered — even if the iframe sends them.
 
 4. **`waitForEvent` timed out.** The default 5-second operation timeout may be too short. Increase it:
+
    ```ts
    await bridge.waitForEvent('slow:event', { timeoutMs: 15000 });
    ```
@@ -305,7 +316,7 @@ await bridge.whenReady();
 // Check what the SDK is seeing
 setInterval(() => {
   const events = recorder.entries.filter(
-    (e) => e.message?.includes('event') || e.message?.includes('Event')
+    (e) => e.message?.includes('event') || e.message?.includes('Event'),
   );
   if (events.length) console.table(events);
 }, 5000);
@@ -330,6 +341,7 @@ Each bridge instance generates a unique session id and validates it on every inb
 ### Common mistakes
 
 1. **Same container for multiple bridges.** If two bridge instances use the same `container` (e.g., `'#frame-root'`), the second iframe replaces or sits next to the first, depending on `replaceContainerContent`. Each bridge needs its own container element.
+
    ```html
    <div id="frame-1"></div>
    <div id="frame-2"></div>
@@ -344,7 +356,7 @@ Each bridge instance generates a unique session id and validates it on every inb
 ### Verifying isolation
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const recA = createDiagnosticRecorder({ maxEntries: 50 });
 const recB = createDiagnosticRecorder({ maxEntries: 50 });
@@ -376,27 +388,28 @@ When diagnostics aren't wired yet, the browser's built-in developer tools can st
 
 ### Check the Network tab
 
-| What to look for | What it means |
-|---|---|
-| Iframe URL returns **404** or **5xx** | The iframe app isn't reachable. Open the URL directly to confirm. |
-| Iframe URL shows **(canceled)** | The navigation was blocked — likely by CSP `frame-src`. Check the Console tab for a CSP violation message. |
-| Iframe URL redirects (301/302) | The final loaded origin may differ from `src.origin`. If the iframe redirects, set `allowedOrigin` and `targetOrigin` explicitly. |
+| What to look for                                        | What it means                                                                                                                                               |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Iframe URL returns **404** or **5xx**                   | The iframe app isn't reachable. Open the URL directly to confirm.                                                                                           |
+| Iframe URL shows **(canceled)**                         | The navigation was blocked — likely by CSP `frame-src`. Check the Console tab for a CSP violation message.                                                  |
+| Iframe URL redirects (301/302)                          | The final loaded origin may differ from `src.origin`. If the iframe redirects, set `allowedOrigin` and `targetOrigin` explicitly.                           |
 | Request shows **(failed) net::ERR_BLOCKED_BY_RESPONSE** | The iframe's response headers block embedding (e.g., `X-Frame-Options: DENY` or `frame-ancestors 'none'`). The iframe server must allow your parent origin. |
 
 ### Check the Console tab
 
-| What to look for | What it means |
-|---|---|
-| `Content-Security-Policy` violation | CSP is blocking the iframe load, script execution, or postMessage delivery. Add the necessary origins to your CSP directives. |
-| `DataCloneError` | The iframe is sending non-structured-cloneable data (functions, DOM nodes, class instances). Fix the iframe's message payloads. |
-| `Failed to execute 'postMessage'` | The SDK's `targetOrigin` doesn't match the iframe's window origin, or the iframe window is unavailable. |
-| `iframe-helper-sdk` in log messages | Your diagnostic logger is wired — check the details on each event. |
+| What to look for                    | What it means                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Content-Security-Policy` violation | CSP is blocking the iframe load, script execution, or postMessage delivery. Add the necessary origins to your CSP directives.   |
+| `DataCloneError`                    | The iframe is sending non-structured-cloneable data (functions, DOM nodes, class instances). Fix the iframe's message payloads. |
+| `Failed to execute 'postMessage'`   | The SDK's `targetOrigin` doesn't match the iframe's window origin, or the iframe window is unavailable.                         |
+| `iframe-helper-sdk` in log messages | Your diagnostic logger is wired — check the details on each event.                                                              |
 
 ### Check the Messages tab
 
 In Chromium-based browsers: **Application** → **Frames** → select the top-level frame → **postMessages**. You'll see every `postMessage` sent and received on the page, including the SDK's protocol envelopes.
 
 Look for:
+
 - `bridge:ready` messages from iframes — if none appear, the iframe isn't sending the handshake.
 - `bridge:connected` messages to iframes — if you see ready but no connected, the ready message was rejected.
 - Repeated `bridge:ready` from the same iframe — duplicate messages are ignored after the first valid one.
@@ -408,7 +421,7 @@ Look for:
 window.__bridge = bridge;
 
 // Then in the console:
-window.__bridge.state
+window.__bridge.state;
 // 'waiting_for_handshake' → 'ready' → or 'handshake_failed'
 ```
 

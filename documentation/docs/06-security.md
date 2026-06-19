@@ -17,17 +17,17 @@ For a working production configuration, see [Use Cases & Recipes](./use-cases). 
 
 These protections are enforced automatically by the SDK. You don't need to opt in — they apply to every bridge instance.
 
-| Guarantee | How it works |
-|---|---|
-| **Exact target origin** | Parent-to-iframe `postMessage` calls always use an exact, validated origin. Wildcard origins (`'*'`) are rejected at config time with `CONFIG_UNSAFE_ORIGIN`. |
-| **Inbound message validation** | Every incoming message is checked against `event.origin`, `event.source`, session id, protocol name (`'iframe-bridge'`), protocol version (`1`), and envelope shape before being processed. |
-| **HTTPS-by-default** | `src` URLs must use HTTPS, except for explicit `localhost` development mode controlled by `allowInsecureLocalhost`. |
-| **Unsafe scheme rejection** | `javascript:`, `data:`, `blob:`, and `srcdoc` iframe URLs are rejected synchronously with `CONFIG_INVALID_SRC`. Embedded credentials in URLs are also rejected. |
-| **Bounded pre-ready queue** | Operations called before handshake readiness are queued with a configurable limit (default: 50). Queue overflow throws `QUEUE_LIMIT_EXCEEDED`. The queue closes on handshake failure or destroy. |
-| **Complete cleanup** | `destroy()` removes all SDK-owned listeners, timers, pending requests, event waits, and the owned iframe. Idempotent — safe to call multiple times. |
-| **Sanitized diagnostics** | Diagnostic events do not include raw `postMessage` data or application payloads by default. Browser `messageerror` events are surfaced as `MESSAGE_DESERIALIZATION_ERROR` without raw message content. |
-| **Strict security profile** | `securityProfile: 'strict'` converts risky-but-allowed configurations into hard errors: rejects insecure localhost mode, wildcard Permissions Policy grants, and sandbox combinations that weaken isolation. |
-| **Duplicate message handling** | Only the first `bridge:ready` is accepted. Duplicate responses for the same `requestId` are ignored. Duplicate ready messages do not re-flush the queue or re-send `bridge:connected`. |
+| Guarantee                      | How it works                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Exact target origin**        | Parent-to-iframe `postMessage` calls always use an exact, validated origin. Wildcard origins (`'*'`) are rejected at config time with `CONFIG_UNSAFE_ORIGIN`.                                                |
+| **Inbound message validation** | Every incoming message is checked against `event.origin`, `event.source`, session id, protocol name (`'iframe-bridge'`), protocol version (`1`), and envelope shape before being processed.                  |
+| **HTTPS-by-default**           | `src` URLs must use HTTPS, except for explicit `localhost` development mode controlled by `allowInsecureLocalhost`.                                                                                          |
+| **Unsafe scheme rejection**    | `javascript:`, `data:`, `blob:`, and `srcdoc` iframe URLs are rejected synchronously with `CONFIG_INVALID_SRC`. Embedded credentials in URLs are also rejected.                                              |
+| **Bounded pre-ready queue**    | Operations called before handshake readiness are queued with a configurable limit (default: 50). Queue overflow throws `QUEUE_LIMIT_EXCEEDED`. The queue closes on handshake failure or destroy.             |
+| **Complete cleanup**           | `destroy()` removes all SDK-owned listeners, timers, pending requests, event waits, and the owned iframe. Idempotent — safe to call multiple times.                                                          |
+| **Sanitized diagnostics**      | Diagnostic events do not include raw `postMessage` data or application payloads by default. Browser `messageerror` events are surfaced as `MESSAGE_DESERIALIZATION_ERROR` without raw message content.       |
+| **Strict security profile**    | `securityProfile: 'strict'` converts risky-but-allowed configurations into hard errors: rejects insecure localhost mode, wildcard Permissions Policy grants, and sandbox combinations that weaken isolation. |
+| **Duplicate message handling** | Only the first `bridge:ready` is accepted. Duplicate responses for the same `requestId` are ignored. Duplicate ready messages do not re-flush the queue or re-send `bridge:connected`.                       |
 
 ---
 
@@ -102,7 +102,7 @@ The `securityProfile` option controls how aggressively the SDK enforces security
 - **Experimentation and manual playgrounds.**
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 // Production: fail fast on unsafe configs
 const bridge = createIframeBridge({
@@ -188,11 +188,11 @@ The `sandbox` option applies the iframe `sandbox` attribute, which restricts wha
 
 ### How sandbox tokens affect the bridge
 
-| Token | Effect on bridge behavior |
-|---|---|
-| `allow-scripts` | Required. Without it, the iframe cannot run JavaScript and the handshake will never complete. |
-| `allow-same-origin` | Treats the iframe as same-origin. **Without it**, the iframe sends `event.origin === 'null'` and the SDK rejects its messages because origins must be exact HTTP(S) values. **With it**, the iframe regains access to its origin's cookies and storage. |
-| `allow-forms`, `allow-top-navigation`, `allow-popups`, etc. | Do not affect bridge communication. Add only if the iframe genuinely needs them. |
+| Token                                                       | Effect on bridge behavior                                                                                                                                                                                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allow-scripts`                                             | Required. Without it, the iframe cannot run JavaScript and the handshake will never complete.                                                                                                                                                           |
+| `allow-same-origin`                                         | Treats the iframe as same-origin. **Without it**, the iframe sends `event.origin === 'null'` and the SDK rejects its messages because origins must be exact HTTP(S) values. **With it**, the iframe regains access to its origin's cookies and storage. |
+| `allow-forms`, `allow-top-navigation`, `allow-popups`, etc. | Do not affect bridge communication. Add only if the iframe genuinely needs them.                                                                                                                                                                        |
 
 ### The `allow-scripts` + `allow-same-origin` caveat
 
@@ -213,7 +213,7 @@ createIframeBridge({
 // Strict: throws CONFIG_UNSAFE_SANDBOX synchronously
 createIframeBridge({
   sandbox: ['allow-scripts', 'allow-same-origin'],
-  securityProfile: 'strict',  // ❌ Error
+  securityProfile: 'strict', // ❌ Error
 });
 ```
 
@@ -228,13 +228,13 @@ Sandbox behavior varies across browsers. Test your exact token combination in ev
 **Maximum isolation** (if the iframe only needs to display content, no scripts):
 
 ```ts
-sandbox: ''  // No tokens — most restrictive
+sandbox: ''; // No tokens — most restrictive
 ```
 
 **Scripts only, no origin access** (the iframe runs scripts but can't access its own origin's cookies/storage):
 
 ```ts
-sandbox: 'allow-scripts'
+sandbox: 'allow-scripts';
 ```
 
 :::danger
@@ -283,7 +283,7 @@ The SDK detects wildcard values (any token containing `*` or `'src'`) in the `al
 createIframeBridge({
   securityProfile: 'strict',
   iframeAttributes: {
-    allow: 'camera *; microphone *',  // ❌ CONFIG_UNSAFE_PERMISSIONS_POLICY
+    allow: 'camera *; microphone *', // ❌ CONFIG_UNSAFE_PERMISSIONS_POLICY
   },
 });
 ```
@@ -310,24 +310,24 @@ Every origin value (`src`, `targetOrigin`, `allowedOrigin`, and the bootstrap pa
 - Not contain **wildcards** — no `*`, no `*.example.com`
 - Not contain **paths, query strings, hashes, or credentials**
 
-| Config value | Valid? | Reason |
-|---|---|---|
-| `https://partner.example` | Yes | Exact HTTPS origin |
-| `http://127.0.0.1:5174` | Yes (with `allowInsecureLocalhost`) | Explicit localhost dev mode |
-| `https://partner.example/app` | No | Contains a path |
-| `https://*.example.com` | No | Contains a wildcard |
-| `*` | No | Wildcard origin |
-| `http://partner.example` | No | HTTP on non-localhost |
-| `https://user:pass@partner.example` | No | Contains credentials |
+| Config value                        | Valid?                              | Reason                      |
+| ----------------------------------- | ----------------------------------- | --------------------------- |
+| `https://partner.example`           | Yes                                 | Exact HTTPS origin          |
+| `http://127.0.0.1:5174`             | Yes (with `allowInsecureLocalhost`) | Explicit localhost dev mode |
+| `https://partner.example/app`       | No                                  | Contains a path             |
+| `https://*.example.com`             | No                                  | Contains a wildcard         |
+| `*`                                 | No                                  | Wildcard origin             |
+| `http://partner.example`            | No                                  | HTTP on non-localhost       |
+| `https://user:pass@partner.example` | No                                  | Contains credentials        |
 
 ### `targetOrigin` vs `allowedOrigin`
 
 These two options control opposite directions of message flow. They must be symmetric for the bridge to work.
 
-| Option | Direction | What it controls |
-|---|---|---|
-| `targetOrigin` | Parent → Iframe | Origin used in `postMessage()` calls from the parent to the iframe |
-| `allowedOrigin` | Iframe → Parent | Origin the parent accepts for inbound messages from the iframe |
+| Option          | Direction       | What it controls                                                   |
+| --------------- | --------------- | ------------------------------------------------------------------ |
+| `targetOrigin`  | Parent → Iframe | Origin used in `postMessage()` calls from the parent to the iframe |
+| `allowedOrigin` | Iframe → Parent | Origin the parent accepts for inbound messages from the iframe     |
 
 If you leave both unset, the SDK derives them from `src.origin`. For most integrations, this is correct. Set them explicitly only when you know the iframe's messaging origin differs from its initial URL.
 
@@ -360,7 +360,7 @@ The SDK never allows non-localhost HTTP origins. During development, set `allowI
 ```ts
 createIframeBridge({
   src: 'http://127.0.0.1:5174',
-  allowInsecureLocalhost: true,  // Required for HTTP localhost
+  allowInsecureLocalhost: true, // Required for HTTP localhost
   securityProfile: 'development',
 });
 ```

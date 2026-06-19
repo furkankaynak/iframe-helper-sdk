@@ -20,10 +20,7 @@ Cross-domain iframes are opaque by design — you can't open the browser's devto
 ### Basic setup
 
 ```ts
-import {
-  createDiagnosticRecorder,
-  createIframeBridge,
-} from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -86,10 +83,10 @@ type DiagnosticRecorderOptions = {
 };
 ```
 
-| Option         | Default       | Behavior                                                                                     |
-| -------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `maxEntries`   | unbounded     | When set and exceeded, the oldest entries are evicted. Must be a non-negative integer.       |
-| _(no option)_  | —             | Without `maxEntries`, the recorder grows indefinitely — fine for short-lived debugging.      |
+| Option        | Default   | Behavior                                                                                |
+| ------------- | --------- | --------------------------------------------------------------------------------------- |
+| `maxEntries`  | unbounded | When set and exceeded, the oldest entries are evicted. Must be a non-negative integer.  |
+| _(no option)_ | —         | Without `maxEntries`, the recorder grows indefinitely — fine for short-lived debugging. |
 
 If `maxEntries` is not a valid non-negative integer, `createDiagnosticRecorder` throws `DIAGNOSTICS_INVALID_MAX_ENTRIES` synchronously.
 
@@ -128,8 +125,8 @@ Each hook is optional. If a hook is missing, events at that level are silently d
 ### Console logger
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
-import type { DiagnosticEvent } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
+import type { DiagnosticEvent } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#frame-root',
@@ -193,13 +190,13 @@ Debug events include lifecycle transitions, handshake details, queue flushes, an
 
 ### When to enable
 
-| Scenario                          | Recommendation                  |
-| --------------------------------- | ------------------------------- |
-| Local development                 | Enable — every detail helps     |
-| Integration testing               | Enable — helps spot mismatches  |
-| CI / automated tests              | Enable — keep recorder as audit |
-| Production with monitoring        | Disable — noise outweighs value |
-| Production debugging an incident  | Enable temporarily via config   |
+| Scenario                         | Recommendation                  |
+| -------------------------------- | ------------------------------- |
+| Local development                | Enable — every detail helps     |
+| Integration testing              | Enable — helps spot mismatches  |
+| CI / automated tests             | Enable — keep recorder as audit |
+| Production with monitoring       | Disable — noise outweighs value |
+| Production debugging an incident | Enable temporarily via config   |
 
 ### What you get with debug
 
@@ -242,12 +239,12 @@ A single successful handshake produces half a dozen debug events. With multiple 
 
 ```ts
 type LifecycleState =
-  | 'created'        // Factory called, config validated
-  | 'mounting'        // Container resolved, iframe element attached
-  | 'waiting_for_handshake'  // Listening for bridge:ready
-  | 'ready'           // Handshake complete, communication active
+  | 'created' // Factory called, config validated
+  | 'mounting' // Container resolved, iframe element attached
+  | 'waiting_for_handshake' // Listening for bridge:ready
+  | 'ready' // Handshake complete, communication active
   | 'handshake_failed' // Timer expired without a valid ready
-  | 'destroyed';      // destroy() called, all listeners removed
+  | 'destroyed'; // destroy() called, all listeners removed
 ```
 
 ```mermaid
@@ -303,13 +300,13 @@ const bridge = createIframeBridge({
 
 ### What state tells you
 
-| State                    | `request` works? | `sendEvent` works? | `on()` listeners fire? |
-| ------------------------ | ---------------- | ------------------ | ---------------------- |
-| `created` / `mounting`   | Queued only      | Queued only        | Registered, not active |
-| `waiting_for_handshake`  | Queued only      | Queued only        | Registered, not active |
-| `ready`                  | Yes              | Yes                | Yes                    |
-| `handshake_failed`       | Rejects          | Rejects            | No                     |
-| `destroyed`              | Rejects          | Rejects            | No                     |
+| State                   | `request` works? | `sendEvent` works? | `on()` listeners fire? |
+| ----------------------- | ---------------- | ------------------ | ---------------------- |
+| `created` / `mounting`  | Queued only      | Queued only        | Registered, not active |
+| `waiting_for_handshake` | Queued only      | Queued only        | Registered, not active |
+| `ready`                 | Yes              | Yes                | Yes                    |
+| `handshake_failed`      | Rejects          | Rejects            | No                     |
+| `destroyed`             | Rejects          | Rejects            | No                     |
 
 Operations called before `ready` are queued when `queue.enabled` is `true` (default). When the queue is disabled, those operations reject with `BRIDGE_NOT_READY` immediately.
 
@@ -319,16 +316,16 @@ Operations called before `ready` are queued when `queue.enabled` is `true` (defa
 
 Diagnostic codes are metadata on `DiagnosticEvent.code` — they help you filter, search, and route events. Some codes overlap with `IframeBridgeErrorCode`, but diagnostic codes are not limited to thrown errors.
 
-| Code                               | Level   | Meaning                                                              | Typical cause                                       |
-| ---------------------------------- | ------- | -------------------------------------------------------------------- | --------------------------------------------------- |
-| `EVENT_LISTENER_ERROR`             | error   | A user-registered `on()` listener threw.                             | Unhandled error in your event handler.              |
-| `MESSAGE_DESERIALIZATION_ERROR`    | error   | Browser fired `messageerror` for a postMessage the SDK expected.     | Non-structured-cloneable data from the iframe.      |
-| `MESSAGE_ORIGIN_MISMATCH`          | debug   | Incoming message origin didn't match `allowedOrigin`.                | Another page posting on the same channel, or `allowedOrigin` misconfigured. |
-| `MESSAGE_SESSION_MISMATCH`         | debug   | Incoming message had a different session id.                         | Another bridge instance's messages, or stale iframe messages after remount. |
-| `MESSAGE_SOURCE_MISMATCH`          | debug   | Incoming message came from a window that isn't the owned iframe.     | Nested iframes or third-party scripts posting messages. |
-| `MESSAGE_INVALID_ENVELOPE`         | debug   | Message matched transport but failed envelope validation.            | Protocol name, version, type, or required fields don't match the spec. |
-| `CONFIG_UNSAFE_SANDBOX`            | warn    | Sandbox combines `allow-scripts` with `allow-same-origin`.           | Intentional for some integrations; surfaces as a warning so you can review. |
-| `CONFIG_UNSAFE_PERMISSIONS_POLICY` | warn    | `iframeAttributes.allow` uses wildcard feature grants.               | `allow="*"` or broad permission grants; narrow to specific features. |
+| Code                               | Level | Meaning                                                          | Typical cause                                                               |
+| ---------------------------------- | ----- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `EVENT_LISTENER_ERROR`             | error | A user-registered `on()` listener threw.                         | Unhandled error in your event handler.                                      |
+| `MESSAGE_DESERIALIZATION_ERROR`    | error | Browser fired `messageerror` for a postMessage the SDK expected. | Non-structured-cloneable data from the iframe.                              |
+| `MESSAGE_ORIGIN_MISMATCH`          | debug | Incoming message origin didn't match `allowedOrigin`.            | Another page posting on the same channel, or `allowedOrigin` misconfigured. |
+| `MESSAGE_SESSION_MISMATCH`         | debug | Incoming message had a different session id.                     | Another bridge instance's messages, or stale iframe messages after remount. |
+| `MESSAGE_SOURCE_MISMATCH`          | debug | Incoming message came from a window that isn't the owned iframe. | Nested iframes or third-party scripts posting messages.                     |
+| `MESSAGE_INVALID_ENVELOPE`         | debug | Message matched transport but failed envelope validation.        | Protocol name, version, type, or required fields don't match the spec.      |
+| `CONFIG_UNSAFE_SANDBOX`            | warn  | Sandbox combines `allow-scripts` with `allow-same-origin`.       | Intentional for some integrations; surfaces as a warning so you can review. |
+| `CONFIG_UNSAFE_PERMISSIONS_POLICY` | warn  | `iframeAttributes.allow` uses wildcard feature grants.           | `allow="*"` or broad permission grants; narrow to specific features.        |
 
 :::tip Diagnose handshake failures
 

@@ -17,7 +17,7 @@ Yes. The SDK is framework-agnostic. It only needs a DOM element (or selector) an
 
 ```ts
 // Inside any framework lifecycle
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-root',
@@ -132,6 +132,7 @@ See the [Security](./security) page for the full security model and the [Configu
 **No.** The session ID is correlation and routing metadata only.
 
 It identifies one bridge attempt so the parent can match inbound messages to the correct bridge instance. It is:
+
 - **Not** authentication
 - **Not** authorization
 - **Not** a CSRF token
@@ -148,8 +149,8 @@ Real authentication belongs server-side, in your application layer, outside this
 
 The current build produces:
 
-| Format | Size | Gzipped |
-| ------ | ---- | ------- |
+| Format | Size   | Gzipped |
+| ------ | ------ | ------- |
 | ESM    | ~37 kB | ~9.5 kB |
 | CJS    | ~28 kB | ~8.3 kB |
 
@@ -167,13 +168,13 @@ The SDK is browser-only. It calls `document.querySelector`, creates `HTMLIFrameE
 
 ```tsx
 import { useEffect, useRef } from 'react';
-import type { IframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import type { IframeBridge } from 'iframe-helper-sdk';
 
 export default function PartnerPage() {
   const bridgeRef = useRef<IframeBridge | null>(null);
 
   useEffect(() => {
-    const { createIframeBridge } = require('@furkankaynak/iframe-helper-sdk');
+    const { createIframeBridge } = require('iframe-helper-sdk');
     bridgeRef.current = createIframeBridge({
       container: '#partner-frame',
       src: 'https://partner.example/app',
@@ -267,7 +268,7 @@ window.addEventListener('message', (event) => {
 After:
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#frame-root',
@@ -287,7 +288,7 @@ Before (raw):
 const requestId = crypto.randomUUID();
 iframe.contentWindow.postMessage(
   { type: 'getUser', id: requestId, payload: { userId: '123' } },
-  'https://partner.example'
+  'https://partner.example',
 );
 
 // Manual pending-request map, timeout timer, response matching...
@@ -296,10 +297,9 @@ iframe.contentWindow.postMessage(
 After:
 
 ```ts
-const user = await bridge.request<{ userId: string }, { name: string }>(
-  'user:get',
-  { userId: '123' }
-);
+const user = await bridge.request<{ userId: string }, { name: string }>('user:get', {
+  userId: '123',
+});
 ```
 
 The SDK manages `requestId` generation, pending-request tracking, timeout timers, and first-response-only deduplication.

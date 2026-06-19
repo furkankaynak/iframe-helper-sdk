@@ -18,7 +18,7 @@ For the full reference on every configuration option, see [Configuration](./conf
 Use this when the parent and iframe app are on different HTTPS origins and the iframe app is trusted to implement the raw bridge protocol.
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const diagnostics = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -71,7 +71,7 @@ Key points:
 Use this only when the parent and iframe app share an origin and are inside the same trust boundary. A same-origin iframe can access the parent DOM, share cookies, and share service worker scope.
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#account-frame',
@@ -117,7 +117,7 @@ Key points:
 Use this for local parent and iframe dev servers running on different localhost ports.
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#frame-root',
@@ -151,7 +151,7 @@ Key points:
 Use sandboxing only after testing the exact token set in a real browser. Sandbox tokens can change the iframe's origin and break exact-origin message validation.
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#reviewed-sandbox-frame',
@@ -172,9 +172,9 @@ const bridge = createIframeBridge({
 
 :::danger The `allow-scripts` + `allow-same-origin` caveat
 
-| Situation | What happens |
-|---|---|
-| **Without `allow-same-origin`** | The iframe sends `event.origin === 'null'`. The SDK rejects it — `allowedOrigin` must be an exact HTTP(S) origin, not `'null'`. |
+| Situation                                      | What happens                                                                                                                                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Without `allow-same-origin`**                | The iframe sends `event.origin === 'null'`. The SDK rejects it — `allowedOrigin` must be an exact HTTP(S) origin, not `'null'`.                                                   |
 | **With `allow-scripts` + `allow-same-origin`** | The sandbox isolation is weakened. In `'development'` mode, the SDK emits a `CONFIG_UNSAFE_SANDBOX` warning. In `'strict'` mode, it throws `CONFIG_UNSAFE_SANDBOX` synchronously. |
 
 :::
@@ -192,7 +192,7 @@ Key points:
 Use this when parent routes or query strings may contain tenant ids, invitation state, or other values that should not be sent in the `Referer` header to the iframe.
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#sensitive-frame',
@@ -226,7 +226,7 @@ Use the `iframeAttributes.allow` attribute only for browser capabilities the ifr
 **Good — origin-scoped, minimal grant:**
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#clipboard-frame',
@@ -244,7 +244,7 @@ const bridge = createIframeBridge({
 **Bad — wildcard grant:**
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#unsafe-frame',
@@ -276,7 +276,7 @@ Use `createDiagnosticRecorder` during development and integration testing to cap
 **Development — recorder + debug:**
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -299,7 +299,7 @@ console.table(recorder.entries);
 **Production — custom logger with error monitoring:**
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -338,7 +338,7 @@ Key points:
 Embedding several iframes on the same page requires a separate bridge instance per iframe. Each bridge gets its own session id, message listener, and lifecycle — they are fully isolated.
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const diagnostics = createDiagnosticRecorder({ maxEntries: 200 });
 
@@ -385,7 +385,9 @@ When integrating with frameworks like React or Vue, call `bridge.destroy()` in y
 ```ts
 // React example
 useEffect(() => {
-  const bridge = createIframeBridge({ /* ... */ });
+  const bridge = createIframeBridge({
+    /* ... */
+  });
   bridge.whenReady();
   return () => bridge.destroy();
 }, []);

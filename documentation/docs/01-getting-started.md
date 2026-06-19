@@ -16,11 +16,11 @@ This guide gets you from an empty file to a working iframe bridge with typed req
 The SDK ships as a single ESM package with zero runtime dependencies.
 
 ```bash npm2yarn
-npm install @furkankaynak/iframe-helper-sdk
+npm install iframe-helper-sdk
 ```
 
 ```bash
-pnpm add @furkankaynak/iframe-helper-sdk
+pnpm add iframe-helper-sdk
 ```
 
 TypeScript types are included — no separate `@types/` package needed. The runtime payload is about **2 KB gzipped** and tree-shakable.
@@ -32,7 +32,7 @@ TypeScript types are included — no separate `@types/` package needed. The runt
 Import the factory and call it with the two required options: a mount target and an iframe URL.
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -107,10 +107,7 @@ Once the bridge is ready, call `bridge.request()` to send a request to the ifram
 
 ```ts
 try {
-  const user = await bridge.request<{ id: string }, { name: string }>(
-    'user:get',
-    { id: '123' },
-  );
+  const user = await bridge.request<{ id: string }, { name: string }>('user:get', { id: '123' });
   console.log(user.name);
 } catch (error) {
   if (error instanceof IframeBridgeError) {
@@ -130,13 +127,13 @@ try {
 
 Every API that can fail throws an `IframeBridgeError` with a structured `code` property:
 
-| Error code | Meaning |
-|---|---|
-| `REQUEST_TIMEOUT` | The iframe didn't respond before the operation timeout. |
+| Error code             | Meaning                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `REQUEST_TIMEOUT`      | The iframe didn't respond before the operation timeout.                                  |
 | `REQUEST_REMOTE_ERROR` | The iframe responded with an explicit error object. Inspect `error.details.remoteError`. |
-| `OPERATION_ABORTED` | The `AbortSignal` you provided was triggered. |
-| `BRIDGE_NOT_READY` | Queueing is disabled and you called a method before readiness. |
-| `BRIDGE_DESTROYED` | The bridge was destroyed while the operation was pending. |
+| `OPERATION_ABORTED`    | The `AbortSignal` you provided was triggered.                                            |
+| `BRIDGE_NOT_READY`     | Queueing is disabled and you called a method before readiness.                           |
+| `BRIDGE_DESTROYED`     | The bridge was destroyed while the operation was pending.                                |
 
 See the full reference: [Error Codes](./error-codes).
 
@@ -168,12 +165,9 @@ The iframe can send events to the parent at any time after the handshake. You ha
 ### Continuous listener (`on`)
 
 ```ts
-const unsubscribe = bridge.on<{ itemCount: number }>(
-  'cart:changed',
-  (payload) => {
-    console.log(payload.itemCount);
-  },
-);
+const unsubscribe = bridge.on<{ itemCount: number }>('cart:changed', (payload) => {
+  console.log(payload.itemCount);
+});
 
 // Later: stop listening
 unsubscribe();
@@ -187,10 +181,7 @@ unsubscribe();
 ### One-shot waiter (`waitForEvent`)
 
 ```ts
-const status = await bridge.waitForEvent<{ ready: boolean }>(
-  'app:status',
-  { timeoutMs: 3000 },
-);
+const status = await bridge.waitForEvent<{ ready: boolean }>('app:status', { timeoutMs: 3000 });
 console.log(status.ready);
 ```
 
@@ -205,7 +196,7 @@ console.log(status.ready);
 For integrations with many methods, per-call generics can get repetitive. `createTypedIframeBridge` lets you define a **contract map** once and get full TypeScript narrowing everywhere:
 
 ```ts
-import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createTypedIframeBridge } from 'iframe-helper-sdk';
 
 type Contract = {
   requests: {
@@ -271,7 +262,14 @@ window.addEventListener('message', (event) => {
     case 'bridge:request':
       // Process request, send bridge:response back
       window.parent.postMessage(
-        { protocol: 'iframe-bridge', version: 1, sessionId, type: 'bridge:response', requestId: msg.requestId, payload: { name: 'Ada' } },
+        {
+          protocol: 'iframe-bridge',
+          version: 1,
+          sessionId,
+          type: 'bridge:response',
+          requestId: msg.requestId,
+          payload: { name: 'Ada' },
+        },
         parentOrigin,
       );
       break;
@@ -306,16 +304,16 @@ The queue is bounded (default: 50 operations). If the queue is full, new operati
 
 The examples above use the bare minimum. Here are the most common options you'll reach for next:
 
-| Option | Purpose |
-|---|---|
-| `container` | DOM element or selector where the iframe is mounted. |
-| `src` | HTTPS URL loaded into the iframe (localhost HTTP allowed in dev). |
-| `targetOrigin` | Exact origin for parent-to-iframe messages. Defaults to `src.origin`. |
-| `allowedOrigin` | Exact origin accepted for iframe-to-parent messages. Defaults to `src.origin`. |
-| `bootstrap.handshakeTimeoutMs` | Max wait for `bridge:ready` (default: 10000). |
-| `timeouts.operationTimeoutMs` | Default timeout for requests and event waits (default: 5000). |
-| `sandbox` | Iframe sandbox attribute for capability restriction. |
-| `securityProfile` | `'strict'` for production fail-fast checks, `'development'` (default) for warnings. |
+| Option                         | Purpose                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| `container`                    | DOM element or selector where the iframe is mounted.                                |
+| `src`                          | HTTPS URL loaded into the iframe (localhost HTTP allowed in dev).                   |
+| `targetOrigin`                 | Exact origin for parent-to-iframe messages. Defaults to `src.origin`.               |
+| `allowedOrigin`                | Exact origin accepted for iframe-to-parent messages. Defaults to `src.origin`.      |
+| `bootstrap.handshakeTimeoutMs` | Max wait for `bridge:ready` (default: 10000).                                       |
+| `timeouts.operationTimeoutMs`  | Default timeout for requests and event waits (default: 5000).                       |
+| `sandbox`                      | Iframe sandbox attribute for capability restriction.                                |
+| `securityProfile`              | `'strict'` for production fail-fast checks, `'development'` (default) for warnings. |
 
 Full reference with every option: [Configuration](./configuration).
 

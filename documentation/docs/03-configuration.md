@@ -57,12 +57,12 @@ createIframeBridge({
 
 **Validation:** Lots of things can go wrong here, and all of them throw synchronously:
 
-| Condition | Error code |
-|---|---|
-| `src` is missing or not parseable as an absolute URL | `CONFIG_INVALID_SRC` |
-| `src` includes embedded credentials (`user:pass@`) | `CONFIG_INVALID_SRC` |
-| `src` uses `javascript:`, `data:`, `blob:`, or another unsupported scheme | `CONFIG_INVALID_SRC` |
-| `src` uses HTTP (and it's not `localhost` with `allowInsecureLocalhost`) | `CONFIG_UNSAFE_ORIGIN` |
+| Condition                                                                 | Error code             |
+| ------------------------------------------------------------------------- | ---------------------- |
+| `src` is missing or not parseable as an absolute URL                      | `CONFIG_INVALID_SRC`   |
+| `src` includes embedded credentials (`user:pass@`)                        | `CONFIG_INVALID_SRC`   |
+| `src` uses `javascript:`, `data:`, `blob:`, or another unsupported scheme | `CONFIG_INVALID_SRC`   |
+| `src` uses HTTP (and it's not `localhost` with `allowInsecureLocalhost`)  | `CONFIG_UNSAFE_ORIGIN` |
 
 :::tip
 
@@ -244,6 +244,7 @@ createIframeBridge({
 **Default:** Derived from `src.origin`. If your `src` is `'https://partner.example/app'`, the default `targetOrigin` is `'https://partner.example'`.
 
 **When to set explicitly:**
+
 - The iframe redirects to a different origin after load, and you know the final origin ahead of time.
 - You want to document the expected iframe origin in code, making it visible during security review.
 - The default derivation pick ups the wrong origin and you need to force a specific value.
@@ -269,6 +270,7 @@ createIframeBridge({
 **Default:** Derived from `src.origin`.
 
 **When to set explicitly:**
+
 - The iframe sends messages from a different origin than its `src` (e.g., after a redirect).
 - You want security-sensitive integrations to be self-documenting in config.
 
@@ -299,6 +301,7 @@ createIframeBridge({
 **Default:** `true` when the current parent origin is `localhost`; `false` otherwise. If `securityProfile` is `'strict'`, this option is forced to `false` regardless of the parent origin.
 
 **When to use:**
+
 - Local development with `http://localhost`, `http://127.0.0.1`, or `http://[::1]` iframe apps.
 - Manual playgrounds that run multiple local dev servers.
 
@@ -355,18 +358,20 @@ createIframeBridge({
 
 **Default:** `'development'`
 
-| Behavior | `development` (default) | `strict` |
-|---|---|---|
-| Wildcard Permissions Policy (`allow: 'camera *'`) | Diagnostic warning | Throws `CONFIG_UNSAFE_PERMISSIONS_POLICY` |
-| `sandbox` with `allow-scripts` + `allow-same-origin` | Diagnostic warning | Throws `CONFIG_UNSAFE_SANDBOX` |
-| `allowInsecureLocalhost: true` | Allowed on localhost | Forced to `false`; setting it to `true` throws `CONFIG_UNSAFE_ORIGIN` |
+| Behavior                                             | `development` (default) | `strict`                                                              |
+| ---------------------------------------------------- | ----------------------- | --------------------------------------------------------------------- |
+| Wildcard Permissions Policy (`allow: 'camera *'`)    | Diagnostic warning      | Throws `CONFIG_UNSAFE_PERMISSIONS_POLICY`                             |
+| `sandbox` with `allow-scripts` + `allow-same-origin` | Diagnostic warning      | Throws `CONFIG_UNSAFE_SANDBOX`                                        |
+| `allowInsecureLocalhost: true`                       | Allowed on localhost    | Forced to `false`; setting it to `true` throws `CONFIG_UNSAFE_ORIGIN` |
 
 **When to use `'strict'`:**
+
 - Production deployments where configuration mistakes should fail fast.
 - CI and integration tests that should catch security misconfiguration.
 - Any deployment where you have reviewed and expect exact, production-grade settings.
 
 **When to keep `'development'`:**
+
 - Local development with HTTP localhost servers.
 - Sandboxed integrations where you have intentionally reviewed and documented the `allow-scripts` + `allow-same-origin` combination.
 - Experimentation and manual playgrounds.
@@ -393,10 +398,12 @@ createIframeBridge({
 - `true` — the SDK replaces all children with `container.replaceChildren(iframe)`. Placeholders, spinners, or stale iframes are removed.
 
 **When to use `true`:**
+
 - The container is a dedicated mount point with placeholder content.
 - You remount the bridge and want the old iframe removed automatically.
 
 **When to keep `false`:**
+
 - The container intentionally holds other host-managed content alongside the iframe.
 
 ---
@@ -424,16 +431,16 @@ type IframeBridgeBootstrapConfig = {
 
 ### Defaults
 
-| Option | Default |
-|---|---|
-| `bootstrap.session.paramName` | `__iframeBridgeSessionId` |
-| `bootstrap.session.paramValue` | SDK-generated random id |
-| `bootstrap.session.location` | `query` |
-| `bootstrap.parentOrigin.enabled` | `true` |
+| Option                             | Default                      |
+| ---------------------------------- | ---------------------------- |
+| `bootstrap.session.paramName`      | `__iframeBridgeSessionId`    |
+| `bootstrap.session.paramValue`     | SDK-generated random id      |
+| `bootstrap.session.location`       | `query`                      |
+| `bootstrap.parentOrigin.enabled`   | `true`                       |
 | `bootstrap.parentOrigin.paramName` | `__iframeBridgeParentOrigin` |
-| `bootstrap.parentOrigin.value` | `window.location.origin` |
-| `bootstrap.parentOrigin.location` | `query` |
-| `bootstrap.handshakeTimeoutMs` | `10000` (10 seconds) |
+| `bootstrap.parentOrigin.value`     | `window.location.origin`     |
+| `bootstrap.parentOrigin.location`  | `query`                      |
+| `bootstrap.handshakeTimeoutMs`     | `10000` (10 seconds)         |
 
 ---
 
@@ -448,6 +455,7 @@ Configures the session parameter appended to the iframe URL. The iframe app must
 **Type:** `string`
 
 The URL parameter name that carries the session id. Customize when:
+
 - The iframe app already expects a specific parameter name.
 - The default name collides with an existing parameter.
 
@@ -468,6 +476,7 @@ If the iframe reads a different parameter name, it won't echo the expected sessi
 **Type:** `string`
 
 A fixed session value. Use when:
+
 - You need deterministic session ids for tests.
 - You want to correlate parent and iframe logs using a shared correlation id.
 - You're reusing a known id during an intentional remount.
@@ -574,10 +583,12 @@ bootstrap: {
 **Default:** `10000` (10 seconds)
 
 **When to increase:**
+
 - The iframe app has a slow startup (heavy bundles, data fetching, delayed initialization).
 - Network conditions are known to be slow in your deployment environment.
 
 **When to decrease:**
+
 - The host UI should fail fast and show its own retry or fallback experience.
 - You're in an integration test environment that benefits from quick feedback.
 
@@ -600,10 +611,10 @@ type IframeBridgeQueueConfig = {
 
 ### Defaults
 
-| Option | Default |
-|---|---|
-| `queue.enabled` | `true` |
-| `queue.maxSize` | `50` |
+| Option          | Default |
+| --------------- | ------- |
+| `queue.enabled` | `true`  |
+| `queue.maxSize` | `50`    |
 
 ---
 
@@ -621,10 +632,12 @@ queue: { enabled: false },
 - `false` — operations called before readiness reject immediately with `BRIDGE_NOT_READY`.
 
 **When to disable:**
+
 - You want strict lifecycle behavior and prefer callers to `await bridge.whenReady()` before communicating.
 - Your integration code is order-dependent and queueing would mask timing bugs.
 
 **When to keep enabled:**
+
 - Host code calls bridge operations immediately after `createIframeBridge()` and expects them to work once the iframe is ready.
 - You want simpler calling code without explicit readiness checks before every operation.
 
@@ -660,8 +673,8 @@ type IframeBridgeTimeoutConfig = {
 
 ### Defaults
 
-| Option | Default |
-|---|---|
+| Option                        | Default            |
+| ----------------------------- | ------------------ |
 | `timeouts.operationTimeoutMs` | `5000` (5 seconds) |
 
 ---
@@ -679,10 +692,12 @@ timeouts: { operationTimeoutMs: 10000 }, // 10 seconds
 **Default:** `5000` (5 seconds)
 
 **What it affects:**
+
 - `request()` — starts after the request is posted; waits for a matching `bridge:response`.
 - `waitForEvent()` — starts after the waiter is active; waits for the next matching inbound event.
 
 **What it does NOT affect:**
+
 - `sendEvent()` — resolves when posted; does not wait for iframe processing.
 - `on()` — continuous listeners have no timeout semantics.
 - The handshake — that's controlled by `bootstrap.handshakeTimeoutMs`.
@@ -696,6 +711,7 @@ const result = await bridge.request('slow:task', payload, { timeoutMs: 30000 });
 ```
 
 **What happens on timeout:**
+
 - `request()` rejects with `REQUEST_TIMEOUT`.
 - `waitForEvent()` rejects with `EVENT_WAIT_TIMEOUT`.
 
@@ -737,6 +753,7 @@ diagnostics: { debug: true },
 Warning and error diagnostics are delivered through configured `warn` and `error` hooks regardless of this setting. Debug diagnostics are only delivered when `debug: true`.
 
 **When to enable:**
+
 - Local development and manual playground debugging.
 - Investigating handshake, message filtering, or lifecycle behavior.
 - Capturing verbose bridge traces with `createDiagnosticRecorder`.
@@ -756,9 +773,15 @@ const bridge = createIframeBridge({
   diagnostics: {
     debug: true,
     logger: {
-      debug(event) { console.debug('[Bridge]', event); },
-      warn(event)  { console.warn('[Bridge]', event); },
-      error(event) { console.error('[Bridge]', event); },
+      debug(event) {
+        console.debug('[Bridge]', event);
+      },
+      warn(event) {
+        console.warn('[Bridge]', event);
+      },
+      error(event) {
+        console.error('[Bridge]', event);
+      },
     },
   },
 });
@@ -787,7 +810,7 @@ Receives error diagnostics for observable runtime issues — for example, when a
 For local debugging and manual examples, `createDiagnosticRecorder` provides a convenience wrapper that collects diagnostic events into an array:
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 

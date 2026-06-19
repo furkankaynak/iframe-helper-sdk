@@ -40,23 +40,23 @@ The browser gives you `window.postMessage` and `message` events. That's a fireho
 
 Instead of raw `postMessage`, you get a bridge instance bound to one iframe, one origin. It manages the handshake, queues messages, enforces timeouts, and surfaces errors with structured codes you can branch on.
 
-| Concern | Raw `postMessage` | Iframe Helper SDK |
-|---|---|---|
-| Origin validation | Manual, easy to misconfigure | Exact origin enforced per bridge |
-| Handshake | None, or DIY | Ready-first handshake with timeout |
-| Message format | Ad-hoc JSON | Standardized envelope (bridge protocol) |
-| Request queueing | Not built in | Bounded queue, automatically flushed |
-| Timeouts | Must implement yourself | Configurable per-operation timeouts |
-| Typed contracts | Manual type assertions | Compile-time narrowing via contracts |
-| Error handling | Generic `Error` | `IframeBridgeError` with code-based branching |
-| Diagnostics | `console.log` debugging | Pluggable diagnostic recorder and logger |
+| Concern           | Raw `postMessage`            | Iframe Helper SDK                             |
+| ----------------- | ---------------------------- | --------------------------------------------- |
+| Origin validation | Manual, easy to misconfigure | Exact origin enforced per bridge              |
+| Handshake         | None, or DIY                 | Ready-first handshake with timeout            |
+| Message format    | Ad-hoc JSON                  | Standardized envelope (bridge protocol)       |
+| Request queueing  | Not built in                 | Bounded queue, automatically flushed          |
+| Timeouts          | Must implement yourself      | Configurable per-operation timeouts           |
+| Typed contracts   | Manual type assertions       | Compile-time narrowing via contracts          |
+| Error handling    | Generic `Error`              | `IframeBridgeError` with code-based branching |
+| Diagnostics       | `console.log` debugging      | Pluggable diagnostic recorder and logger      |
 
 ---
 
 ## At a Glance
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -76,12 +76,14 @@ Three steps: create a bridge, wait for the iframe to say it's ready, start sendi
 You're embedding an iframe that lives on a different origin (or the same origin, under controlled conditions) and you want structured communication with it. The SDK is for the **parent page**. The iframe application does not need to import this package — it only needs to follow the [wire protocol](./wire-protocol) for the handshake and message format.
 
 **Use this SDK if you:**
+
 - Embed a partner widget, chat panel, or micro-frontend from a separate domain
 - Want type-safe method contracts between your app and an embedded iframe
 - Need origin enforcement and message routing that's auditable and debuggable
 - Maintain a platform that third parties embed into
 
 **You probably don't need this SDK if:**
+
 - Your iframe is purely presentational (no communication needed)
 - You're building a single-team monolith where same-origin `postMessage` suffices
 - You're on the iframe side only — the SDK runs in the parent context

@@ -33,8 +33,7 @@ export default {
         docs: {
           sidebarPath: './sidebars.js',
           routeBasePath: '/',
-          editUrl:
-            'https://github.com/furkankaynak/iframe-helper-sdk/edit/main/documentation/',
+          editUrl: 'https://github.com/furkankaynak/iframe-helper-sdk/edit/main/documentation/',
         },
         blog: false,
         theme: {

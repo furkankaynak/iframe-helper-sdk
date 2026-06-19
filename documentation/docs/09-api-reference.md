@@ -15,18 +15,18 @@ If you're looking for conceptual explanations, see [Core Concepts](./core-concep
 
 ## Quick Reference
 
-| Export | Kind | Description |
-|---|---|---|
-| `createIframeBridge` | Function | Create a bridge instance for a cross-domain iframe |
-| `createTypedIframeBridge` | Function | Create a contract-typed bridge instance |
-| `createDiagnosticRecorder` | Function | Record diagnostic events for debugging |
-| `IframeBridgeError` | Class | Typed SDK error with `code`, `message`, and `details` |
-| `BRIDGE_MESSAGE_TYPES` | Constant | Tuple of all bridge message type strings |
-| `BRIDGE_PROTOCOL_NAME` | Constant | Protocol name string: `'iframe-bridge'` |
-| `BRIDGE_PROTOCOL_VERSION` | Constant | Protocol version number: `1` |
-| `isBridgeEnvelope` | Function | Type guard: checks if a value is a bridge envelope |
-| `validateBridgeEnvelope` | Function | Validates and returns a typed bridge envelope |
-| `normalizeBridgeRemoteError` | Function | Normalizes a remote error into a standard shape |
+| Export                       | Kind     | Description                                           |
+| ---------------------------- | -------- | ----------------------------------------------------- |
+| `createIframeBridge`         | Function | Create a bridge instance for a cross-domain iframe    |
+| `createTypedIframeBridge`    | Function | Create a contract-typed bridge instance               |
+| `createDiagnosticRecorder`   | Function | Record diagnostic events for debugging                |
+| `IframeBridgeError`          | Class    | Typed SDK error with `code`, `message`, and `details` |
+| `BRIDGE_MESSAGE_TYPES`       | Constant | Tuple of all bridge message type strings              |
+| `BRIDGE_PROTOCOL_NAME`       | Constant | Protocol name string: `'iframe-bridge'`               |
+| `BRIDGE_PROTOCOL_VERSION`    | Constant | Protocol version number: `1`                          |
+| `isBridgeEnvelope`           | Function | Type guard: checks if a value is a bridge envelope    |
+| `validateBridgeEnvelope`     | Function | Validates and returns a typed bridge envelope         |
+| `normalizeBridgeRemoteError` | Function | Normalizes a remote error into a standard shape       |
 
 <details>
 <summary>All exported types</summary>
@@ -53,7 +53,7 @@ import {
   isBridgeEnvelope,
   normalizeBridgeRemoteError,
   validateBridgeEnvelope,
-} from '@furkankaynak/iframe-helper-sdk';
+} from 'iframe-helper-sdk';
 
 import type {
   BridgeEnvelope,
@@ -66,7 +66,7 @@ import type {
   IframeBridgeSecurityProfile,
   OperationOptions,
   TypedIframeBridge,
-} from '@furkankaynak/iframe-helper-sdk';
+} from 'iframe-helper-sdk';
 ```
 
 ---
@@ -76,7 +76,7 @@ import type {
 ### `createIframeBridge(config)`
 
 ```ts
-function createIframeBridge(config: IframeBridgeConfig): IframeBridge
+function createIframeBridge(config: IframeBridgeConfig): IframeBridge;
 ```
 
 Creates and returns a new bridge instance. The factory performs these steps synchronously before returning:
@@ -91,7 +91,7 @@ Creates and returns a new bridge instance. The factory performs these steps sync
 The returned bridge is in `waiting_for_handshake` state and begins listening for `bridge:ready` from the iframe.
 
 ```ts
-import { createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createIframeBridge({
   container: '#partner-frame',
@@ -108,6 +108,7 @@ const user = await bridge.request('user:get', { id: '123' });
 **Returns:** `IframeBridge` — the bridge instance. Use this object for all communication with the iframe.
 
 **Throws:** `IframeBridgeError` synchronously when config validation fails. Common codes:
+
 - `CONFIG_INVALID_CONTAINER` — invalid or missing container
 - `CONFIG_INVALID_SRC` — missing, unparseable, or unsupported URL scheme
 - `CONFIG_UNSAFE_ORIGIN` — HTTP non-localhost origin without `allowInsecureLocalhost`
@@ -122,13 +123,13 @@ const user = await bridge.request('user:get', { id: '123' });
 ```ts
 function createTypedIframeBridge<TContract extends IframeBridgeContract>(
   config: IframeBridgeConfig,
-): TypedIframeBridge<TContract>
+): TypedIframeBridge<TContract>;
 ```
 
 Creates a bridge instance with compile-time type narrowing. The runtime behavior is identical to `createIframeBridge` — the generic contract parameter only affects TypeScript types. See [Type-Safe Bridge](#type-safe-bridge) for the full contract API and examples.
 
 ```ts
-import { createTypedIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createTypedIframeBridge } from 'iframe-helper-sdk';
 
 const bridge = createTypedIframeBridge<PartnerContract>({
   container: '#partner-frame',
@@ -153,7 +154,11 @@ Every bridge instance (`IframeBridge`) exposes the properties and methods below.
 type IframeBridge = {
   readonly iframe: HTMLIFrameElement;
   readonly state: LifecycleState;
-  request<TPayload, TResponse>(method: string, payload: TPayload, options?: OperationOptions): Promise<TResponse>;
+  request<TPayload, TResponse>(
+    method: string,
+    payload: TPayload,
+    options?: OperationOptions,
+  ): Promise<TResponse>;
   sendEvent<TPayload>(name: string, payload: TPayload, options?: OperationOptions): Promise<void>;
   waitForEvent<TPayload>(name: string, options?: OperationOptions): Promise<TPayload>;
   on<TPayload>(name: string, handler: (payload: TPayload) => void): () => void;
@@ -199,14 +204,14 @@ type LifecycleState =
   | 'destroyed';
 ```
 
-| State | Description | Valid operations |
-|---|---|---|
-| `created` | Config validated, bridge object returned. Iframe not yet created. | `destroy()` |
-| `mounting` | Iframe element built. Listeners not yet installed. | `destroy()` |
-| `waiting_for_handshake` | Listener installed, iframe loading. Handshake timer ticking. | `request()`, `sendEvent()`, `waitForEvent()`, `on()`, `whenReady()`, `destroy()` |
-| `ready` | Valid `bridge:ready` received and `bridge:connected` sent. Queue flushed. | All operations |
-| `handshake_failed` | Handshake timeout elapsed without a valid ready. | `destroy()`, `remount()` |
-| `destroyed` | Bridge destroyed. Listeners removed, iframe detached. | None — all calls reject with `BRIDGE_DESTROYED` |
+| State                   | Description                                                               | Valid operations                                                                 |
+| ----------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `created`               | Config validated, bridge object returned. Iframe not yet created.         | `destroy()`                                                                      |
+| `mounting`              | Iframe element built. Listeners not yet installed.                        | `destroy()`                                                                      |
+| `waiting_for_handshake` | Listener installed, iframe loading. Handshake timer ticking.              | `request()`, `sendEvent()`, `waitForEvent()`, `on()`, `whenReady()`, `destroy()` |
+| `ready`                 | Valid `bridge:ready` received and `bridge:connected` sent. Queue flushed. | All operations                                                                   |
+| `handshake_failed`      | Handshake timeout elapsed without a valid ready.                          | `destroy()`, `remount()`                                                         |
+| `destroyed`             | Bridge destroyed. Listeners removed, iframe detached.                     | None — all calls reject with `BRIDGE_DESTROYED`                                  |
 
 ---
 
@@ -224,10 +229,7 @@ Sends a request to the iframe and waits for a matching response. This is the pri
 
 ```ts
 // Basic usage — type parameters are optional but recommended
-const user = await bridge.request<{ id: string }, { name: string }>(
-  'user:get',
-  { id: '123' },
-);
+const user = await bridge.request<{ id: string }, { name: string }>('user:get', { id: '123' });
 
 // With a per-operation timeout override
 const report = await bridge.request('report:generate', params, {
@@ -244,30 +246,30 @@ controller.abort(); // promise rejects with OPERATION_ABORTED
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `method` | `string` | The request method name. Must be non-empty. The iframe uses this to route the request. |
-| `payload` | `TPayload` | The request payload. Must be structured-cloneable data (no functions, DOM nodes, class instances). |
-| `options.timeoutMs` | `number` (optional) | Per-operation timeout in milliseconds. Overrides `timeouts.operationTimeoutMs`. Must be an integer ≥ 1. |
-| `options.signal` | `AbortSignal` (optional) | Abort controller signal for cancelling the request. |
+| Parameter           | Type                     | Description                                                                                             |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `method`            | `string`                 | The request method name. Must be non-empty. The iframe uses this to route the request.                  |
+| `payload`           | `TPayload`               | The request payload. Must be structured-cloneable data (no functions, DOM nodes, class instances).      |
+| `options.timeoutMs` | `number` (optional)      | Per-operation timeout in milliseconds. Overrides `timeouts.operationTimeoutMs`. Must be an integer ≥ 1. |
+| `options.signal`    | `AbortSignal` (optional) | Abort controller signal for cancelling the request.                                                     |
 
 **Returns:** `Promise<TResponse>` — resolves with the iframe's response payload when a matching `bridge:response` arrives.
 
 **Behavior:**
 
-| Scenario | Outcome |
-|---|---|
-| Called before ready, queue enabled | Enters the pre-ready queue. Flushes and executes after readiness. |
-| Called before ready, queue disabled | Rejects with `BRIDGE_NOT_READY` |
-| Called when queue is full | Rejects with `QUEUE_LIMIT_EXCEEDED` |
-| Handshake succeeds | Request is posted and timeout started |
-| Handshake fails while queued | Rejects with handshake error (`HANDSHAKE_TIMEOUT`) |
-| Iframe returns a response with `error` | Rejects with `REQUEST_REMOTE_ERROR` — the remote error is in `error.details.remoteError` |
-| Iframe returns multiple responses for the same requestId | Only the first is accepted; duplicates are ignored |
-| `signal` aborts while queued or pending | Rejects with `OPERATION_ABORTED`; timers and listeners cleaned up |
-| `timeoutMs` elapses before response | Rejects with `REQUEST_TIMEOUT` |
-| Invalid `timeoutMs` provided | Rejects with `OPERATION_INVALID_TIMEOUT` |
-| Bridge is destroyed while pending | Rejects with `BRIDGE_DESTROYED` |
+| Scenario                                                 | Outcome                                                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Called before ready, queue enabled                       | Enters the pre-ready queue. Flushes and executes after readiness.                        |
+| Called before ready, queue disabled                      | Rejects with `BRIDGE_NOT_READY`                                                          |
+| Called when queue is full                                | Rejects with `QUEUE_LIMIT_EXCEEDED`                                                      |
+| Handshake succeeds                                       | Request is posted and timeout started                                                    |
+| Handshake fails while queued                             | Rejects with handshake error (`HANDSHAKE_TIMEOUT`)                                       |
+| Iframe returns a response with `error`                   | Rejects with `REQUEST_REMOTE_ERROR` — the remote error is in `error.details.remoteError` |
+| Iframe returns multiple responses for the same requestId | Only the first is accepted; duplicates are ignored                                       |
+| `signal` aborts while queued or pending                  | Rejects with `OPERATION_ABORTED`; timers and listeners cleaned up                        |
+| `timeoutMs` elapses before response                      | Rejects with `REQUEST_TIMEOUT`                                                           |
+| Invalid `timeoutMs` provided                             | Rejects with `OPERATION_INVALID_TIMEOUT`                                                 |
+| Bridge is destroyed while pending                        | Rejects with `BRIDGE_DESTROYED`                                                          |
 
 :::tip
 
@@ -304,24 +306,24 @@ controller.abort(); // rejects with OPERATION_ABORTED
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | `string` | The event name. Must be non-empty. |
-| `payload` | `TPayload` | The event payload. Must be structured-cloneable data. |
-| `options.timeoutMs` | `number` (optional) | Per-operation timeout. Used only during the queue phase; the event resolves immediately after posting. |
-| `options.signal` | `AbortSignal` (optional) | Aborts before the event is posted. Once posted, abort is a no-op — the iframe has already received (or will receive) the message. |
+| Parameter           | Type                     | Description                                                                                                                       |
+| ------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | `string`                 | The event name. Must be non-empty.                                                                                                |
+| `payload`           | `TPayload`               | The event payload. Must be structured-cloneable data.                                                                             |
+| `options.timeoutMs` | `number` (optional)      | Per-operation timeout. Used only during the queue phase; the event resolves immediately after posting.                            |
+| `options.signal`    | `AbortSignal` (optional) | Aborts before the event is posted. Once posted, abort is a no-op — the iframe has already received (or will receive) the message. |
 
 **Returns:** `Promise<void>` — resolves after the event is posted to the iframe via `postMessage`.
 
 **Behavior:**
 
-| Scenario | Outcome |
-|---|---|
-| Called before ready, queue enabled | Enters the pre-ready queue. Resolves after flush and post. |
-| Called before ready, queue disabled | Rejects with `BRIDGE_NOT_READY` |
-| `signal` aborts before post | Rejects with `OPERATION_ABORTED` |
-| `signal` aborts after post | No effect — the event was already sent |
-| Invalid `timeoutMs` | Rejects with `OPERATION_INVALID_TIMEOUT` |
+| Scenario                            | Outcome                                                    |
+| ----------------------------------- | ---------------------------------------------------------- |
+| Called before ready, queue enabled  | Enters the pre-ready queue. Resolves after flush and post. |
+| Called before ready, queue disabled | Rejects with `BRIDGE_NOT_READY`                            |
+| `signal` aborts before post         | Rejects with `OPERATION_ABORTED`                           |
+| `signal` aborts after post          | No effect — the event was already sent                     |
+| Invalid `timeoutMs`                 | Rejects with `OPERATION_INVALID_TIMEOUT`                   |
 
 :::note
 
@@ -358,24 +360,24 @@ const promise = bridge.waitForEvent('transaction:complete', {
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | `string` | The event name to wait for. Must match the `name` field on the iframe's `bridge:event` envelope. |
-| `options.timeoutMs` | `number` (optional) | How long to wait for the event. Overrides `timeouts.operationTimeoutMs`. |
-| `options.signal` | `AbortSignal` (optional) | Cancels the wait. |
+| Parameter           | Type                     | Description                                                                                      |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ |
+| `name`              | `string`                 | The event name to wait for. Must match the `name` field on the iframe's `bridge:event` envelope. |
+| `options.timeoutMs` | `number` (optional)      | How long to wait for the event. Overrides `timeouts.operationTimeoutMs`.                         |
+| `options.signal`    | `AbortSignal` (optional) | Cancels the wait.                                                                                |
 
 **Returns:** `Promise<TPayload>` — resolves with the event payload from the first matching inbound event received after the waiter becomes active.
 
 **Behavior:**
 
-| Scenario | Outcome |
-|---|---|
-| Called before ready, queue enabled | Registration is queued. Timeout starts after flush. |
-| Called before ready, queue disabled | Rejects with `BRIDGE_NOT_READY` |
-| Timeout elapses before matching event | Rejects with `EVENT_WAIT_TIMEOUT` |
-| `signal` aborts while queued or waiting | Rejects with `OPERATION_ABORTED`; waiter removed |
-| Bridge destroyed before resolution | Rejects with `BRIDGE_DESTROYED` |
-| Invalid `timeoutMs` | Rejects with `OPERATION_INVALID_TIMEOUT` |
+| Scenario                                | Outcome                                             |
+| --------------------------------------- | --------------------------------------------------- |
+| Called before ready, queue enabled      | Registration is queued. Timeout starts after flush. |
+| Called before ready, queue disabled     | Rejects with `BRIDGE_NOT_READY`                     |
+| Timeout elapses before matching event   | Rejects with `EVENT_WAIT_TIMEOUT`                   |
+| `signal` aborts while queued or waiting | Rejects with `OPERATION_ABORTED`; waiter removed    |
+| Bridge destroyed before resolution      | Rejects with `BRIDGE_DESTROYED`                     |
+| Invalid `timeoutMs`                     | Rejects with `OPERATION_INVALID_TIMEOUT`            |
 
 :::warning
 
@@ -397,12 +399,9 @@ on<TPayload = unknown>(
 Registers a continuous event listener for inbound events from the iframe. Returns an unsubscribe function. Use this for persistent subscriptions — state changes, real-time data, or UI updates.
 
 ```ts
-const unsubscribe = bridge.on<{ itemCount: number }>(
-  'cart:changed',
-  (payload) => {
-    console.log('Cart now has', payload.itemCount, 'items');
-  },
-);
+const unsubscribe = bridge.on<{ itemCount: number }>('cart:changed', (payload) => {
+  console.log('Cart now has', payload.itemCount, 'items');
+});
 
 // Later, stop listening
 unsubscribe();
@@ -410,22 +409,22 @@ unsubscribe();
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | `string` | The event name to subscribe to. |
+| Parameter | Type                          | Description                                                            |
+| --------- | ----------------------------- | ---------------------------------------------------------------------- |
+| `name`    | `string`                      | The event name to subscribe to.                                        |
 | `handler` | `(payload: TPayload) => void` | Callback invoked with the event payload when a matching event arrives. |
 
 **Returns:** `() => void` — an unsubscribe function. Call it to remove the listener.
 
 **Behavior:**
 
-| Scenario | Outcome |
-|---|---|
-| Registered before ready | Listener installed. Events are dispatched only when the bridge is `ready`. |
-| Registered after ready | Listener installed immediately. Receives future matching events. |
-| Registered after destroyed or handshake_failed | Throws — listeners cannot be added to a non-operational bridge. |
-| Bridge destroyed | All listeners removed. No further calls. |
-| Handler throws | Diagnostics emit `EVENT_LISTENER_ERROR` (if logger configured). Other listeners continue. Bridge operation is not interrupted. |
+| Scenario                                       | Outcome                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Registered before ready                        | Listener installed. Events are dispatched only when the bridge is `ready`.                                                     |
+| Registered after ready                         | Listener installed immediately. Receives future matching events.                                                               |
+| Registered after destroyed or handshake_failed | Throws — listeners cannot be added to a non-operational bridge.                                                                |
+| Bridge destroyed                               | All listeners removed. No further calls.                                                                                       |
+| Handler throws                                 | Diagnostics emit `EVENT_LISTENER_ERROR` (if logger configured). Other listeners continue. Bridge operation is not interrupted. |
 
 :::note
 
@@ -458,12 +457,12 @@ try {
 
 **Behavior:**
 
-| Scenario | Outcome |
-|---|---|
-| Bridge already ready | Resolves immediately |
-| Bridge becomes ready | Resolves when the first valid `bridge:ready` is accepted |
-| Handshake timeout elapses | Rejects with `HANDSHAKE_TIMEOUT` |
-| Bridge destroyed before ready | Rejects with `BRIDGE_DESTROYED` |
+| Scenario                      | Outcome                                                  |
+| ----------------------------- | -------------------------------------------------------- |
+| Bridge already ready          | Resolves immediately                                     |
+| Bridge becomes ready          | Resolves when the first valid `bridge:ready` is accepted |
+| Handshake timeout elapses     | Rejects with `HANDSHAKE_TIMEOUT`                         |
+| Bridge destroyed before ready | Rejects with `BRIDGE_DESTROYED`                          |
 
 :::tip
 
@@ -492,6 +491,7 @@ if (bridge.state === 'handshake_failed') {
 **Returns:** `IframeBridge` — a new bridge instance created from the original config.
 
 **Behavior:**
+
 - Destroys the current bridge (same guarantees as `destroy()` — timer cleanup, listener removal, pending rejection, iframe detach).
 - Creates a fresh iframe, fresh session id, fresh handshake timer, fresh message listener.
 - If `bootstrap.session.paramValue` was explicitly set, that value is reused. For a new session id per attempt, leave it unset so the SDK generates one.
@@ -514,6 +514,7 @@ bridge.destroy(); // safe
 ```
 
 **Behavior:**
+
 - Removes the `message` event listener from `window`.
 - Clears all active timers (handshake timeout, operation timeouts).
 - Rejects all queued operations with `BRIDGE_DESTROYED`.
@@ -547,11 +548,11 @@ type IframeBridgeRequestContract = {
 
 Each contract field defines a map from method/event name to its payload type:
 
-| Contract field | Controls |
-|---|---|
-| `requests` | Narrows `request()` — method name, payload type, and response type |
-| `outboundEvents` | Narrows `sendEvent()` — event name and payload type |
-| `inboundEvents` | Narrows `on()` and `waitForEvent()` — event name and payload type |
+| Contract field   | Controls                                                           |
+| ---------------- | ------------------------------------------------------------------ |
+| `requests`       | Narrows `request()` — method name, payload type, and response type |
+| `outboundEvents` | Narrows `sendEvent()` — event name and payload type                |
+| `inboundEvents`  | Narrows `on()` and `waitForEvent()` — event name and payload type  |
 
 ### TypedIframeBridge API
 
@@ -651,20 +652,20 @@ type OperationOptions = {
 
 Passed as the optional third argument to `request()`, `sendEvent()`, and `waitForEvent()`.
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `timeoutMs` | `number` | `timeouts.operationTimeoutMs` (5000) | Per-operation timeout in milliseconds. Overrides the default. Must be an integer ≥ 1. |
-| `signal` | `AbortSignal` | — | An `AbortController` signal for cancelling the operation. |
+| Option      | Type          | Default                              | Description                                                                           |
+| ----------- | ------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| `timeoutMs` | `number`      | `timeouts.operationTimeoutMs` (5000) | Per-operation timeout in milliseconds. Overrides the default. Must be an integer ≥ 1. |
+| `signal`    | `AbortSignal` | —                                    | An `AbortController` signal for cancelling the operation.                             |
 
 **Validation:** If `timeoutMs` is invalid (not an integer, or < 1), the operation rejects with `OPERATION_INVALID_TIMEOUT`.
 
 **Per-method behavior:**
 
-| Method | `timeoutMs` effect | `signal` effect |
-|---|---|---|
-| `request()` | Starts after post; rejects with `REQUEST_TIMEOUT` | Rejects with `OPERATION_ABORTED` if aborted while queued or pending |
-| `sendEvent()` | Rejects with `OPERATION_INVALID_TIMEOUT` if set (fire-and-forget should not have a timeout) | Rejects with `OPERATION_ABORTED` if aborted before post; no-op after post |
-| `waitForEvent()` | Starts after waiter active; rejects with `EVENT_WAIT_TIMEOUT` | Rejects with `OPERATION_ABORTED`; waiter removed |
+| Method           | `timeoutMs` effect                                                                          | `signal` effect                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `request()`      | Starts after post; rejects with `REQUEST_TIMEOUT`                                           | Rejects with `OPERATION_ABORTED` if aborted while queued or pending       |
+| `sendEvent()`    | Rejects with `OPERATION_INVALID_TIMEOUT` if set (fire-and-forget should not have a timeout) | Rejects with `OPERATION_ABORTED` if aborted before post; no-op after post |
+| `waitForEvent()` | Starts after waiter active; rejects with `EVENT_WAIT_TIMEOUT`                               | Rejects with `OPERATION_ABORTED`; waiter removed                          |
 
 ---
 
@@ -681,7 +682,7 @@ class IframeBridgeError extends Error {
 Every error thrown by the SDK is an instance of `IframeBridgeError`. Use `instanceof` to distinguish SDK errors from other exceptions in catch blocks.
 
 ```ts
-import { IframeBridgeError } from '@furkankaynak/iframe-helper-sdk';
+import { IframeBridgeError } from 'iframe-helper-sdk';
 
 try {
   const result = await bridge.request('user:get', { id: '123' });
@@ -696,12 +697,12 @@ try {
 
 **Properties:**
 
-| Property | Type | Description |
-|---|---|---|
-| `code` | `IframeBridgeErrorCode` | The error code. See [Error Codes](./error-codes) for every code, its cause, and recovery actions. |
-| `message` | `string` | Human-readable description of what went wrong. |
-| `details` | `unknown` | Optional additional context. For `REQUEST_REMOTE_ERROR`, contains the normalized remote error. |
-| `cause` | `unknown` | The original error that triggered this one, when available (standard `Error.cause`). |
+| Property  | Type                    | Description                                                                                       |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `code`    | `IframeBridgeErrorCode` | The error code. See [Error Codes](./error-codes) for every code, its cause, and recovery actions. |
+| `message` | `string`                | Human-readable description of what went wrong.                                                    |
+| `details` | `unknown`               | Optional additional context. For `REQUEST_REMOTE_ERROR`, contains the normalized remote error.    |
+| `cause`   | `unknown`               | The original error that triggered this one, when available (standard `Error.cause`).              |
 
 **`IframeBridgeErrorCode`** — the full union of all error codes:
 
@@ -742,15 +743,13 @@ For the complete error reference — what each code means, common causes, and re
 ## `createDiagnosticRecorder(options?)`
 
 ```ts
-function createDiagnosticRecorder(
-  options?: DiagnosticRecorderOptions,
-): DiagnosticRecorder
+function createDiagnosticRecorder(options?: DiagnosticRecorderOptions): DiagnosticRecorder;
 ```
 
 Creates a diagnostic recorder for collecting bridge events during development and debugging. Pass its `logger` to the bridge's `diagnostics.logger` config, then inspect `recorder.entries` after operations complete.
 
 ```ts
-import { createDiagnosticRecorder, createIframeBridge } from '@furkankaynak/iframe-helper-sdk';
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
 const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
@@ -771,8 +770,8 @@ console.table(recorder.entries);
 
 ```ts
 type DiagnosticRecorderOptions = {
-  readonly maxEntries?: number;  // default: Infinity
-  readonly now?: () => number;   // default: Date.now
+  readonly maxEntries?: number; // default: Infinity
+  readonly now?: () => number; // default: Date.now
 };
 ```
 
@@ -794,11 +793,11 @@ type DiagnosticRecorderEntry = Readonly<
 >;
 ```
 
-| Property / Method | Description |
-|---|---|
-| `entries` | Array of recorded diagnostic events, most recent first. Each entry extends `DiagnosticEvent` with `level`, `sequence`, and `timestamp`. |
-| `logger` | A `debug`/`warn`/`error` logger object that routes bridge diagnostics into `entries`. Pass this to `diagnostics.logger`. |
-| `clear()` | Empties the recorded `entries` array. |
+| Property / Method | Description                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `entries`         | Array of recorded diagnostic events, most recent first. Each entry extends `DiagnosticEvent` with `level`, `sequence`, and `timestamp`. |
+| `logger`          | A `debug`/`warn`/`error` logger object that routes bridge diagnostics into `entries`. Pass this to `diagnostics.logger`.                |
+| `clear()`         | Empties the recorded `entries` array.                                                                                                   |
 
 :::note
 
@@ -819,25 +818,29 @@ import {
   BRIDGE_MESSAGE_TYPES,
   BRIDGE_PROTOCOL_NAME,
   BRIDGE_PROTOCOL_VERSION,
-} from '@furkankaynak/iframe-helper-sdk';
+} from 'iframe-helper-sdk';
 ```
 
-| Constant | Type | Value |
-|---|---|---|
-| `BRIDGE_PROTOCOL_NAME` | `'iframe-bridge'` | The protocol name used in every envelope's `protocol` field. |
-| `BRIDGE_PROTOCOL_VERSION` | `1` | The protocol version. Envelopes with other versions are rejected. |
-| `BRIDGE_MESSAGE_TYPES` | `readonly ['bridge:ready', 'bridge:connected', 'bridge:event', 'bridge:request', 'bridge:response']` | Tuple of all valid bridge message type strings. |
+| Constant                  | Type                                                                                                 | Value                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `BRIDGE_PROTOCOL_NAME`    | `'iframe-bridge'`                                                                                    | The protocol name used in every envelope's `protocol` field.      |
+| `BRIDGE_PROTOCOL_VERSION` | `1`                                                                                                  | The protocol version. Envelopes with other versions are rejected. |
+| `BRIDGE_MESSAGE_TYPES`    | `readonly ['bridge:ready', 'bridge:connected', 'bridge:event', 'bridge:request', 'bridge:response']` | Tuple of all valid bridge message type strings.                   |
 
 ### Validation Functions
 
 ```ts
-import { isBridgeEnvelope, validateBridgeEnvelope, normalizeBridgeRemoteError } from '@furkankaynak/iframe-helper-sdk';
+import {
+  isBridgeEnvelope,
+  validateBridgeEnvelope,
+  normalizeBridgeRemoteError,
+} from 'iframe-helper-sdk';
 ```
 
 #### `isBridgeEnvelope(value)`
 
 ```ts
-function isBridgeEnvelope(value: unknown): value is BridgeEnvelope
+function isBridgeEnvelope(value: unknown): value is BridgeEnvelope;
 ```
 
 Type guard that checks whether a value matches the bridge envelope shape. Returns `true` if the value has the correct `protocol`, `version`, `sessionId`, and `type` fields with expected types.
@@ -854,7 +857,7 @@ window.addEventListener('message', (event) => {
 #### `validateBridgeEnvelope(value)`
 
 ```ts
-function validateBridgeEnvelope(value: unknown): BridgeEnvelope
+function validateBridgeEnvelope(value: unknown): BridgeEnvelope;
 ```
 
 Validates a value against the bridge envelope shape and returns it typed. Throws if the value is not a valid envelope — use `isBridgeEnvelope` first for conditionals, or `validateBridgeEnvelope` when you expect a valid envelope and want the error thrown on mismatch.
@@ -868,6 +871,7 @@ try {
 ```
 
 **Validation rules:**
+
 - `protocol` must be `'iframe-bridge'`
 - `version` must be `1`
 - `sessionId` must be a non-empty string
@@ -879,7 +883,7 @@ try {
 #### `normalizeBridgeRemoteError(error)`
 
 ```ts
-function normalizeBridgeRemoteError(error: unknown): BridgeEnvelopeError
+function normalizeBridgeRemoteError(error: unknown): BridgeEnvelopeError;
 ```
 
 Normalizes a remote error value into the standard `{ code, message, data? }` shape. If the input is already a valid `BridgeEnvelopeError`, it is returned as-is. Otherwise, a fallback error with code `'REMOTE_ERROR'` and the original value as `data` is returned.
@@ -983,14 +987,8 @@ type IframeBridge = {
     payload: TPayload,
     options?: OperationOptions,
   ): Promise<void>;
-  waitForEvent<TPayload = unknown>(
-    name: string,
-    options?: OperationOptions,
-  ): Promise<TPayload>;
-  on<TPayload = unknown>(
-    name: string,
-    handler: (payload: TPayload) => void,
-  ): () => void;
+  waitForEvent<TPayload = unknown>(name: string, options?: OperationOptions): Promise<TPayload>;
+  on<TPayload = unknown>(name: string, handler: (payload: TPayload) => void): () => void;
   whenReady(): Promise<void>;
   remount(): IframeBridge;
   destroy(): void;
