@@ -36,6 +36,13 @@ Three steps: create a bridge, wait for the iframe to say it's ready, start sendi
 
 ## Installation
 
+This package is published to **GitHub Packages**. Configure your npm client first:
+
+```bash
+# One-time: tell npm where to find @furkankaynak packages
+echo '@furkankaynak:registry=https://npm.pkg.github.com' >> .npmrc
+```
+
 ```bash
 npm install @furkankaynak/iframe-helper-sdk
 ```
