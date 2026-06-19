@@ -9,6 +9,41 @@ import viteConfigExport from '../../vite.config';
 const projectRoot = process.cwd();
 
 describe('production package configuration', () => {
+  test('publishes npm metadata for discoverability and package page trust', async () => {
+    const packageJson = await readJson('package.json');
+    const bugs = getRecord(packageJson.bugs, 'bugs');
+    const author = getRecord(packageJson.author, 'author');
+
+    expect(packageJson.version).toBe('0.1.2');
+    expect(packageJson.description).toBe(
+      'TypeScript SDK for secure cross-domain iframe embeds with a strict postMessage bridge, origin validation, handshakes, RPC-style requests, events, and typed contracts.',
+    );
+    expect(packageJson.keywords).toEqual([
+      'iframe',
+      'iframe-bridge',
+      'postmessage',
+      'post-message',
+      'window-messaging',
+      'cross-domain',
+      'cross-origin',
+      'bridge',
+      'rpc',
+      'typescript',
+      'type-safe',
+      'browser',
+      'embed',
+      'sandbox',
+      'origin-validation',
+    ]);
+    expect(packageJson.homepage).toBe('https://furkankaynak.github.io/iframe-helper-sdk/');
+    expect(bugs.url).toBe('https://github.com/furkankaynak/iframe-helper-sdk/issues');
+    expect(author).toEqual({
+      name: 'Furkan Kaynak',
+      email: 'furkankaynak.74@gmail.com',
+      url: 'https://furkankaynak.dev',
+    });
+  });
+
   test('publishes a dual-format root package contract with declarations in dist/types', async () => {
     const packageJson = await readJson('package.json');
     const exports = getRecord(packageJson.exports, 'exports');

@@ -1,12 +1,38 @@
 {
   "name": "iframe-helper-sdk",
-  "version": "0.1.1",
-  "description": "Parent-side TypeScript SDK for mounting cross-domain iframes with an isolated bridge.",
+  "version": "0.1.2",
+  "description": "TypeScript SDK for secure cross-domain iframe embeds with a strict postMessage bridge, origin validation, handshakes, RPC-style requests, events, and typed contracts.",
+  "keywords": [
+    "iframe",
+    "iframe-bridge",
+    "postmessage",
+    "post-message",
+    "window-messaging",
+    "cross-domain",
+    "cross-origin",
+    "bridge",
+    "rpc",
+    "typescript",
+    "type-safe",
+    "browser",
+    "embed",
+    "sandbox",
+    "origin-validation"
+  ],
   "type": "module",
   "license": "MIT",
+  "author": {
+    "name": "Furkan Kaynak",
+    "email": "furkankaynak.74@gmail.com",
+    "url": "https://furkankaynak.dev"
+  },
+  "homepage": "https://furkankaynak.github.io/iframe-helper-sdk/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/furkankaynak/iframe-helper-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/furkankaynak/iframe-helper-sdk/issues"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
