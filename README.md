@@ -1,205 +1,401 @@
 # Iframe Helper SDK
 
 [![npm version](https://img.shields.io/npm/v/iframe-helper-sdk)](https://www.npmjs.com/package/iframe-helper-sdk)
-[![license](https://img.shields.io/npm/l/iframe-helper-sdk)](./LICENSE)
+[![docs](https://github.com/furkankaynak/iframe-helper-sdk/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/furkankaynak/iframe-helper-sdk/actions/workflows/deploy-docs.yml)
+[![types](https://img.shields.io/npm/types/iframe-helper-sdk)](https://www.npmjs.com/package/iframe-helper-sdk)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/iframe-helper-sdk)](https://bundlephobia.com/package/iframe-helper-sdk)
+[![license](https://img.shields.io/npm/l/iframe-helper-sdk)](./LICENSE)
 
 **Secure, structured communication between a parent page and cross-domain iframes.**
 
-Embed iframes from separate origins without reaching for `window.postMessage` directly. The SDK handles origin validation, handshake verification, message queueing, and typed request/response contracts — so you focus on what the iframe _does_ instead of how to talk to it.
+`iframe-helper-sdk` is a zero-dependency TypeScript SDK for parent-side iframe integrations. It wraps `window.postMessage` with exact origin validation, ready-first handshakes, session routing, bounded queueing, request/response timeouts, fire-and-forget events, diagnostics, and optional compile-time typed contracts.
 
-## Key Features
+Use it when you need a small, auditable bridge between your application and an embedded iframe without building a custom protocol from scratch.
 
-- **Strict origin enforcement** — exact origin matching, no wildcards. Every message source is validated against the configured origin.
-- **Bounded message queue** — requests sent before the handshake completes are queued automatically and flushed once the bridge is ready.
-- **Request/response with timeouts** — every request gets a timeout; timed-out operations are cleaned up so they can't interfere with future communication.
-- **Compile-time typed contracts** — optional `createTypedIframeBridge` provides full TypeScript narrowing for method names, payloads, and responses without runtime cost.
-- **Fire-and-forget events** — send events to the iframe (or listen for inbound events) as one-way notifications with no response overhead.
-- **Diagnostics built in** — plug in a diagnostic recorder to capture lifecycle events, message routing, and errors for debugging and monitoring.
-- **Zero dependencies** — the runtime payload is a single ES2020 bundle with no external dependencies.
-- **~2 KB gzipped** — small enough to not matter in your bundle budget.
-
-## Quick Start
-
-```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
-
-const bridge = createIframeBridge({
-  container: '#partner-frame',
-  src: 'https://partner.example/app',
-});
-
-await bridge.whenReady();
-const user = await bridge.request('user:get', { id: '123' });
-```
-
-Three steps: create a bridge, wait for the iframe to say it's ready, start sending requests. The bridge handles origin verification, session routing, queueing, and cleanup behind the scenes.
-
-## Installation
+## Install
 
 ```bash
 npm install iframe-helper-sdk
 ```
 
 ```bash
-yarn add iframe-helper-sdk
-```
-
-```bash
 pnpm add iframe-helper-sdk
 ```
 
-TypeScript types are included — no separate `@types/` package needed. Requires Node.js 18+ at build time; at runtime the SDK targets ES2020 browsers.
+```bash
+yarn add iframe-helper-sdk
+```
 
-## Documentation
+Types are included. No separate `@types/*` package is required.
 
-Full documentation at **[furkankaynak.github.io/iframe-helper-sdk](https://furkankaynak.github.io/iframe-helper-sdk/)**:
+## Quick Start
 
-| Section      | Pages                                                                          |
-| ------------ | ------------------------------------------------------------------------------ |
-| Introduction | Home, Getting Started, Core Concepts                                           |
-| Guides       | Configuration, Type-Safe Bridge, Wire Protocol, Security, Use Cases, Debugging |
-| Reference    | API Reference, Error Codes                                                     |
-| Help         | Troubleshooting, FAQ                                                           |
+### Parent Page
 
-Source code and issues: [github.com/furkankaynak/iframe-helper-sdk](https://github.com/furkankaynak/iframe-helper-sdk)
+The SDK runs in the parent page. Give it a container and an iframe URL, wait for the iframe to complete the handshake, then start communicating.
+
+```ts
+import { IframeBridgeError, createIframeBridge } from 'iframe-helper-sdk';
+
+const bridge = createIframeBridge({
+  container: '#partner-frame',
+  src: 'https://partner.example/app',
+  iframeAttributes: {
+    title: 'Partner application',
+  },
+  securityProfile: 'strict',
+});
+
+try {
+  await bridge.whenReady();
+
+  const user = await bridge.request<{ id: string }, { name: string }>('user:get', {
+    id: '123',
+  });
+
+  console.log(user.name);
+} catch (error) {
+  if (error instanceof IframeBridgeError) {
+    console.error('Bridge failed:', error.code, error.details);
+  } else {
+    throw error;
+  }
+}
+```
+
+### Iframe Application
+
+The iframe application does not need to install this SDK. It implements the wire protocol directly by reading the bootstrap parameters and replying with protocol envelopes.
+
+```ts
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get('__iframeBridgeSessionId');
+const parentOrigin = params.get('__iframeBridgeParentOrigin');
+
+if (!sessionId || !parentOrigin) {
+  throw new Error('Missing iframe bridge bootstrap parameters.');
+}
+
+window.parent.postMessage(
+  {
+    protocol: 'iframe-bridge',
+    version: 1,
+    sessionId,
+    type: 'bridge:ready',
+  },
+  parentOrigin,
+);
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== parentOrigin) return;
+
+  const message = event.data;
+  if (message?.protocol !== 'iframe-bridge' || message?.version !== 1) return;
+  if (message.sessionId !== sessionId) return;
+
+  if (message.type === 'bridge:request' && message.name === 'user:get') {
+    window.parent.postMessage(
+      {
+        protocol: 'iframe-bridge',
+        version: 1,
+        sessionId,
+        type: 'bridge:response',
+        requestId: message.requestId,
+        payload: { name: 'Ada Lovelace' },
+      },
+      parentOrigin,
+    );
+  }
+});
+```
+
+See the full [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol) for every envelope type and validation rule.
+
+## Why This SDK
+
+Raw `postMessage` is intentionally low-level. Every window, iframe, tab, and extension can send messages on the same channel. A production iframe integration needs more structure than a `message` event listener.
+
+| Concern           | Raw `postMessage`       | Iframe Helper SDK                             |
+| ----------------- | ----------------------- | --------------------------------------------- |
+| Origin validation | Manual and easy to miss | Exact origin enforced per bridge              |
+| Handshake         | None or custom          | Ready-first handshake with timeout            |
+| Message format    | Ad hoc JSON             | Versioned `iframe-bridge` envelopes           |
+| Request queueing  | Not built in            | Bounded pre-ready queue                       |
+| Timeouts          | Manual timers           | Configurable operation timeouts               |
+| Typed contracts   | Manual type assertions  | Compile-time narrowing via contract maps      |
+| Error handling    | Generic errors          | `IframeBridgeError` with code-based branching |
+| Diagnostics       | Console logging         | Opt-in diagnostic recorder and logger hooks   |
+
+## Features
+
+- **Strict origin enforcement** - exact `targetOrigin` and `allowedOrigin` checks. Wildcard origins are rejected.
+- **Ready-first handshake** - the parent waits for `bridge:ready`, validates the sender, then responds with `bridge:connected`.
+- **Session-scoped routing** - every bridge gets a session id so messages from unrelated iframes are ignored.
+- **Bounded pre-ready queue** - operations called before readiness are queued and flushed after handshake, with a configurable limit.
+- **Request/response API** - `bridge.request()` sends a method call and resolves with the iframe response.
+- **Event API** - `bridge.sendEvent()`, `bridge.on()`, and `bridge.waitForEvent()` cover one-way and inbound event flows.
+- **Typed contracts** - `createTypedIframeBridge` narrows method names, payloads, and responses at compile time with no runtime cost.
+- **Structured errors** - every SDK error is an `IframeBridgeError` with a stable `code` and optional `details`.
+- **Diagnostics** - use `createDiagnosticRecorder` or a custom logger to observe lifecycle, handshake, queue, and filtering decisions.
+- **Small runtime** - zero runtime dependencies, tree-shakable package output, and a compact browser payload.
 
 ## Communication Patterns
 
-The bridge exposes four communication primitives:
-
-| You want to...                                  | Use                               |
-| ----------------------------------------------- | --------------------------------- |
-| Ask the iframe a question and get an answer     | `bridge.request(method, payload)` |
-| Notify the iframe of something, no reply needed | `bridge.sendEvent(name, payload)` |
-| Wait for a one-time event from the iframe       | `bridge.waitForEvent(name)`       |
-| React to every occurrence of an event           | `bridge.on(name, handler)`        |
+| You want to                                  | Use                                   |
+| -------------------------------------------- | ------------------------------------- |
+| Wait until the iframe is ready               | `bridge.whenReady()`                  |
+| Ask the iframe for a result                  | `bridge.request(method, payload)`     |
+| Notify the iframe without waiting for a body | `bridge.sendEvent(name, payload)`     |
+| Subscribe to iframe events                   | `bridge.on(name, handler)`            |
+| Wait for one matching iframe event           | `bridge.waitForEvent(name, options?)` |
+| Recreate a failed bridge attempt             | `bridge.remount()`                    |
+| Remove listeners, timers, and the iframe     | `bridge.destroy()`                    |
 
 ## Type-Safe Bridge
 
-For integrations with many methods, define a contract map once and get full TypeScript narrowing everywhere:
+Use `createTypedIframeBridge` when your integration has enough methods or events that repeated generics become noisy. The contract exists only at compile time. It does not validate runtime payloads and is not a security boundary.
 
 ```ts
 import { createTypedIframeBridge } from 'iframe-helper-sdk';
 
-type Contract = {
+type PartnerContract = {
   requests: {
-    'user:get': { payload: { id: string }; response: { name: string } };
+    'user:get': {
+      payload: { id: string };
+      response: { name: string; email: string };
+    };
+    'order:create': {
+      payload: { productId: string; quantity: number };
+      response: { orderId: string };
+    };
   };
   outboundEvents: {
-    'analytics:track': { action: string };
+    'analytics:track': { action: string; label?: string };
   };
   inboundEvents: {
     'cart:changed': { itemCount: number };
   };
 };
 
-const bridge = createTypedIframeBridge<Contract>({
+const bridge = createTypedIframeBridge<PartnerContract>({
   container: '#partner-frame',
   src: 'https://partner.example/app',
 });
 
 await bridge.whenReady();
+
 const user = await bridge.request('user:get', { id: '123' });
-//      ^ typed as { name: string }
+// user is { name: string; email: string }
 
 await bridge.sendEvent('analytics:track', { action: 'opened' });
-//      ^ only accepts { action: string }
 
 bridge.on('cart:changed', (payload) => {
-  //                ^ typed as { itemCount: number }
   console.log(payload.itemCount);
 });
 ```
 
-This is **compile-time only** — the runtime wire protocol is identical to `createIframeBridge`. No runtime schema validation, no additional bytes.
+Read more in the [Type-Safe Bridge guide](https://furkankaynak.github.io/iframe-helper-sdk/typed-bridge).
+
+## Security Model
+
+This SDK is a transport and lifecycle layer, not a complete application security solution. It reduces common `postMessage` mistakes, but authentication, authorization, payload validation, CSRF protection, and server-side business rules remain your responsibility.
+
+Enforced by the SDK:
+
+- Parent-to-iframe messages always use an exact target origin.
+- Inbound messages are validated against origin, source window, session id, protocol name, protocol version, and envelope shape.
+- HTTPS iframe URLs are required by default. HTTP is only allowed for explicit localhost development mode.
+- Unsafe URL schemes such as `javascript:`, `data:`, `blob:`, and `srcdoc` are rejected.
+- `securityProfile: 'strict'` turns risky production settings into config errors.
+- `destroy()` removes SDK-owned listeners, timers, pending requests, event waits, and the owned iframe.
+
+Production checklist:
+
+- Use HTTPS for both parent and iframe origins.
+- Set `securityProfile: 'strict'` once local development is complete.
+- Keep `targetOrigin` and `allowedOrigin` exact. Do not use wildcard origins.
+- Add parent-side CSP such as `frame-src https://partner.example`.
+- Add iframe-side CSP such as `frame-ancestors https://host.example`.
+- Review iframe `sandbox` and `allow` attributes before enabling browser capabilities.
+- Validate critical payloads in your application layer or backend.
+
+Read the full [Security guide](https://furkankaynak.github.io/iframe-helper-sdk/security) before shipping a cross-domain integration.
+
+## API Surface
+
+Import public APIs from the package root only.
+
+```ts
+import {
+  BRIDGE_MESSAGE_TYPES,
+  BRIDGE_PROTOCOL_NAME,
+  BRIDGE_PROTOCOL_VERSION,
+  IframeBridgeError,
+  createDiagnosticRecorder,
+  createIframeBridge,
+  createTypedIframeBridge,
+  isBridgeEnvelope,
+  normalizeBridgeRemoteError,
+  validateBridgeEnvelope,
+} from 'iframe-helper-sdk';
+```
+
+| Export                       | Kind     | Purpose                                             |
+| ---------------------------- | -------- | --------------------------------------------------- |
+| `createIframeBridge`         | Function | Create a parent-side iframe bridge                  |
+| `createTypedIframeBridge`    | Function | Create the same bridge with contract-narrowed types |
+| `createDiagnosticRecorder`   | Function | Capture diagnostic events in a bounded recorder     |
+| `IframeBridgeError`          | Class    | SDK error with `code`, `message`, and `details`     |
+| `BRIDGE_MESSAGE_TYPES`       | Constant | Tuple of protocol message type strings              |
+| `BRIDGE_PROTOCOL_NAME`       | Constant | Protocol name, currently `'iframe-bridge'`          |
+| `BRIDGE_PROTOCOL_VERSION`    | Constant | Protocol version, currently `1`                     |
+| `isBridgeEnvelope`           | Function | Type guard for bridge envelopes                     |
+| `validateBridgeEnvelope`     | Function | Validate and return a typed bridge envelope         |
+| `normalizeBridgeRemoteError` | Function | Normalize iframe-side error responses               |
+
+### Bridge Instance
+
+```ts
+type IframeBridge = {
+  readonly iframe: HTMLIFrameElement;
+  readonly state:
+    | 'created'
+    | 'mounting'
+    | 'waiting_for_handshake'
+    | 'ready'
+    | 'handshake_failed'
+    | 'destroyed';
+  request<TPayload, TResponse>(
+    method: string,
+    payload: TPayload,
+    options?: OperationOptions,
+  ): Promise<TResponse>;
+  sendEvent<TPayload>(name: string, payload: TPayload, options?: OperationOptions): Promise<void>;
+  waitForEvent<TPayload>(name: string, options?: OperationOptions): Promise<TPayload>;
+  on<TPayload>(name: string, handler: (payload: TPayload) => void): () => void;
+  whenReady(): Promise<void>;
+  remount(): IframeBridge;
+  destroy(): void;
+};
+```
+
+Full reference: [API Reference](https://furkankaynak.github.io/iframe-helper-sdk/api-reference).
 
 ## Error Handling
 
-Every API that can fail throws an `IframeBridgeError` with a structured `code` property you can branch on:
+All SDK errors use `IframeBridgeError`. Branch on `error.code` instead of parsing strings.
 
 ```ts
 import { IframeBridgeError } from 'iframe-helper-sdk';
 
 try {
-  const user = await bridge.request('user:get', { id: '123' });
+  await bridge.whenReady();
+  const result = await bridge.request('report:generate', payload, {
+    timeoutMs: 30_000,
+  });
+  console.log(result);
 } catch (error) {
   if (error instanceof IframeBridgeError) {
-    console.error('Bridge error:', error.code, error.message, error.details);
+    switch (error.code) {
+      case 'HANDSHAKE_TIMEOUT':
+        console.error('The iframe did not complete the handshake.');
+        break;
+      case 'REQUEST_TIMEOUT':
+        console.error('The iframe did not respond in time.');
+        break;
+      case 'REQUEST_REMOTE_ERROR':
+        console.error('The iframe returned an error:', error.details);
+        break;
+      default:
+        console.error(error.code, error.message, error.details);
+    }
   } else {
-    throw error; // re-throw non-SDK errors
+    throw error;
   }
 }
 ```
 
-| Code                   | Meaning                                                             |
-| ---------------------- | ------------------------------------------------------------------- |
-| `REQUEST_TIMEOUT`      | The iframe didn't respond before the operation timeout.             |
-| `REQUEST_REMOTE_ERROR` | The iframe responded with an explicit error object.                 |
-| `OPERATION_ABORTED`    | The `AbortSignal` you provided was triggered.                       |
-| `BRIDGE_NOT_READY`     | Queueing is disabled and you called a method before readiness.      |
-| `BRIDGE_DESTROYED`     | The bridge was destroyed while the operation was pending.           |
-| `HANDSHAKE_TIMEOUT`    | The iframe didn't send `bridge:ready` within the handshake timeout. |
+Common codes:
 
-See the full [Error Codes reference](https://furkankaynak.github.io/iframe-helper-sdk/error-codes) for all 25 error codes and recovery actions.
+| Code                   | Meaning                                                        |
+| ---------------------- | -------------------------------------------------------------- |
+| `HANDSHAKE_TIMEOUT`    | The iframe did not send a valid `bridge:ready` in time         |
+| `REQUEST_TIMEOUT`      | A request was sent, but no matching response arrived in time   |
+| `REQUEST_REMOTE_ERROR` | The iframe responded with an explicit error object             |
+| `EVENT_WAIT_TIMEOUT`   | `waitForEvent()` did not receive the expected event in time    |
+| `OPERATION_ABORTED`    | The provided `AbortSignal` cancelled the operation             |
+| `BRIDGE_NOT_READY`     | Queueing is disabled and an operation ran before readiness     |
+| `BRIDGE_DESTROYED`     | The bridge was destroyed before the operation could complete   |
+| `QUEUE_LIMIT_EXCEEDED` | Too many operations were queued before the iframe became ready |
 
-## Iframe Application (Protocol)
+See the [Error Codes reference](https://furkankaynak.github.io/iframe-helper-sdk/error-codes) for the complete list and recovery actions.
 
-The iframe does **not** need to import this SDK. It implements the raw protocol directly:
+## Diagnostics
+
+Diagnostics are opt-in. Use the built-in recorder for local debugging or plug your own logger into monitoring.
 
 ```ts
-// 1. Read bootstrap parameters from the URL
-const params = new URLSearchParams(window.location.search);
-const sessionId = params.get('__iframeBridgeSessionId');
-const parentOrigin = params.get('__iframeBridgeParentOrigin');
+import { createDiagnosticRecorder, createIframeBridge } from 'iframe-helper-sdk';
 
-// 2. Send bridge:ready to the parent
-window.parent.postMessage(
-  { protocol: 'iframe-bridge', version: 1, sessionId, type: 'bridge:ready' },
-  parentOrigin,
-);
+const recorder = createDiagnosticRecorder({ maxEntries: 100 });
 
-// 3. Listen for parent messages
-window.addEventListener('message', (event) => {
-  if (event.origin !== parentOrigin) return;
-  const msg = event.data;
-  if (msg?.protocol !== 'iframe-bridge' || msg?.sessionId !== sessionId) return;
-
-  switch (msg.type) {
-    case 'bridge:connected':
-      console.log('Connected!');
-      break;
-    case 'bridge:request':
-      // Process request, send bridge:response back
-      window.parent.postMessage(
-        {
-          protocol: 'iframe-bridge',
-          version: 1,
-          sessionId,
-          type: 'bridge:response',
-          requestId: msg.requestId,
-          payload: { name: 'Ada' },
-        },
-        parentOrigin,
-      );
-      break;
-  }
+const bridge = createIframeBridge({
+  container: '#partner-frame',
+  src: 'https://partner.example/app',
+  diagnostics: {
+    debug: true,
+    logger: recorder.logger,
+  },
 });
+
+await bridge.whenReady();
+
+console.table(recorder.entries);
 ```
 
-Full protocol specification: [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol)
+Diagnostics are sanitized by design and do not include raw application payloads by default. See [Debugging & Diagnostics](https://furkankaynak.github.io/iframe-helper-sdk/debugging).
 
-## Manual Example
+## Documentation
 
-The repository includes working parent/iframe playgrounds under `playground/manual/`:
+Full documentation: [furkankaynak.github.io/iframe-helper-sdk](https://furkankaynak.github.io/iframe-helper-sdk/)
+
+| Section      | Pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Introduction | [Home](https://furkankaynak.github.io/iframe-helper-sdk/), [Getting Started](https://furkankaynak.github.io/iframe-helper-sdk/getting-started), [Core Concepts](https://furkankaynak.github.io/iframe-helper-sdk/core-concepts)                                                                                                                                                                                                                                              |
+| Guides       | [Configuration](https://furkankaynak.github.io/iframe-helper-sdk/configuration), [Type-Safe Bridge](https://furkankaynak.github.io/iframe-helper-sdk/typed-bridge), [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol), [Security](https://furkankaynak.github.io/iframe-helper-sdk/security), [Use Cases](https://furkankaynak.github.io/iframe-helper-sdk/use-cases), [Debugging](https://furkankaynak.github.io/iframe-helper-sdk/debugging) |
+| Reference    | [API Reference](https://furkankaynak.github.io/iframe-helper-sdk/api-reference), [Error Codes](https://furkankaynak.github.io/iframe-helper-sdk/error-codes)                                                                                                                                                                                                                                                                                                                 |
+| Help         | [Troubleshooting](https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting), [FAQ](https://furkankaynak.github.io/iframe-helper-sdk/faq)                                                                                                                                                                                                                                                                                                                             |
+
+Documentation source lives in [`documentation/docs`](./documentation/docs).
+
+## Examples
+
+The repository includes a working parent and iframe playground under [`playground/manual`](./playground/manual).
 
 ```bash
 npm run build
+```
+
+Then run the parent and iframe dev servers in separate terminals:
+
+```bash
 npm run example:manual:parent
+```
+
+```bash
 npm run example:manual:iframe
 ```
 
-Open `http://127.0.0.1:5173/` after both dev servers are running. The parent server serves `playground/manual/parent` as its root, and the iframe server serves `playground/manual/iframe`.
+Open `http://127.0.0.1:5173/`. The parent server runs on port `5173`, and the iframe server runs on port `5174`.
+
+## Compatibility
+
+- **Runtime:** Browser environments with `window`, `document`, `HTMLIFrameElement`, and `postMessage`.
+- **SSR:** Browser-only. Create bridges inside client-only lifecycle hooks such as React `useEffect`, Vue `onMounted`, or Svelte `onMount`.
+- **Build target:** ES2020 browser output.
+- **Package formats:** ESM and CommonJS, with TypeScript declarations for both import styles.
+- **Node.js:** `>=18` for development, build, and package tooling.
+- **Dependencies:** Zero runtime dependencies.
 
 ## Development
 
@@ -214,14 +410,26 @@ npm run format:check
 
 | Script                 | Description                                                                  |
 | ---------------------- | ---------------------------------------------------------------------------- |
-| `npm run build`        | Production build (Vite + tsc + CJS types)                                    |
-| `npm run test`         | Vitest test runner                                                           |
-| `npm run typecheck`    | TypeScript type checking (`tsc --noEmit`)                                    |
+| `npm run build`        | Production build with Vite, TypeScript declarations, and CJS type prep       |
+| `npm run test`         | Vitest test suite                                                            |
+| `npm run typecheck`    | TypeScript type checking with `tsc --noEmit`                                 |
 | `npm run lint`         | ESLint                                                                       |
+| `npm run format`       | Format source, tests, playground, docs, config, and README files             |
 | `npm run format:check` | Prettier format check                                                        |
-| `npm run verify`       | Full CI pipeline (typecheck + test + lint + format + build + publint + attw) |
-| `npm run docs:dev`     | Start Docusaurus documentation server                                        |
-| `npm run docs:build`   | Build documentation site                                                     |
+| `npm run verify`       | Full release gate: typecheck, test, lint, format, build, publint, attw, pack |
+| `npm run docs:dev`     | Start the Docusaurus documentation server                                    |
+| `npm run docs:build`   | Build the documentation site                                                 |
+
+## Contributing
+
+Issues and pull requests are welcome on [GitHub](https://github.com/furkankaynak/iframe-helper-sdk). For changes to the public API, update the documentation and README examples in the same pull request.
+
+Before opening a PR, run:
+
+```bash
+npm run verify
+npm run docs:build
+```
 
 ## License
 
