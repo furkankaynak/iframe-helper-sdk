@@ -73,13 +73,17 @@ describe('production package configuration', () => {
     expect(prepareCjsTypes).not.toContain('sourceMappingURL');
   });
 
-  test('uses current npm trusted publishing workflow settings', async () => {
+  test('publishes from version tag pushes using npm trusted publishing', async () => {
     const publishWorkflow = await readFile(
       join(projectRoot, '.github', 'workflows', 'publish.yml'),
       'utf8',
     );
 
+    expect(publishWorkflow).toContain('push:');
+    expect(publishWorkflow).toContain('tags:');
+    expect(publishWorkflow).toContain("'v*'");
     expect(publishWorkflow).toContain('workflow_dispatch:');
+    expect(publishWorkflow).not.toContain('release:');
     expect(publishWorkflow).toContain('id-token: write');
     expect(publishWorkflow).toContain('actions/checkout@v6');
     expect(publishWorkflow).toContain('actions/setup-node@v6');
