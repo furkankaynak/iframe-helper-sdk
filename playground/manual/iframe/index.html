@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iframe Helper SDK Manual Iframe</title>
+    <style>
+      :root {
+        color: #f8fafc;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+        background: #111827;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      main {
+        padding: 24px;
+      }
+
+      .panel {
+        border: 1px solid #334155;
+        border-radius: 16px;
+        background: #1e293b;
+        padding: 20px;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      pre {
+        max-height: 320px;
+        overflow: auto;
+        border-radius: 12px;
+        background: #020617;
+        color: #bfdbfe;
+        padding: 14px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="panel">
+        <h1>Manual Iframe</h1>
+        <p>This app implements the raw bridge protocol directly and imports no SDK code.</p>
+        <p>Status: <strong id="status">booting</strong></p>
+        <pre id="log"></pre>
+      </div>
+    </main>
+
+    <script type="module">
+      const protocol = 'iframe-bridge';
+      const version = 1;
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('__iframeBridgeSessionId');
+      const parentOrigin = params.get('__iframeBridgeParentOrigin');
+      const statusElement = document.querySelector('#status');
+      const logElement = document.querySelector('#log');
+
+      if (!sessionId || !parentOrigin) {
+        statusElement.textContent = 'missing bootstrap params';
+        log('Missing __iframeBridgeSessionId or __iframeBridgeParentOrigin');
+      } else {
+        window.addEventListener('message', handleMessage);
+        postToParent({ type: 'bridge:ready' });
+        statusElement.textContent = 'ready sent';
+        log(`Sent bridge:ready to ${parentOrigin}`);
+      }
+
+      function handleMessage(event) {
+        if (event.origin !== parentOrigin) {
+          log(`Ignored message from ${event.origin}`);
+          return;
+        }
+
+        const envelope = event.data;
+
+        if (!isBridgeEnvelope(envelope)) {
+          log('Ignored invalid envelope');
+          return;
+        }
+
+        if (envelope.type === 'bridge:connected') {
+          statusElement.textContent = 'connected';
+          log('Received bridge:connected');
+          postToParent({ name: 'cart:changed', payload: { itemCount: 1 }, type: 'bridge:event' });
+          return;
+        }
+
+        if (envelope.type === 'bridge:event') {
+          log(`Received event ${envelope.name} ${JSON.stringify(envelope.payload)}`);
+          return;
+        }
+
+        if (envelope.type === 'bridge:request') {
+          log(`Received request ${envelope.name} ${JSON.stringify(envelope.payload)}`);
+
+          if (envelope.name === 'user:get') {
+            postToParent({
+              payload: { id: envelope.payload?.id, name: 'Manual Ada' },
+              requestId: envelope.requestId,
+              type: 'bridge:response',
+            });
+            return;
+          }
+
+          postToParent({
+            error: {
+              code: 'UNKNOWN_METHOD',
+              message: `Unknown method ${envelope.name}`,
+            },
+            requestId: envelope.requestId,
+            type: 'bridge:response',
+          });
+        }
+      }
+
+      function postToParent(message) {
+        window.parent.postMessage(
+          {
+            protocol,
+            sessionId,
+            version,
+            ...message,
+          },
+          parentOrigin,
+        );
+      }
+
+      function isBridgeEnvelope(value) {
+        return (
+          typeof value === 'object' &&
+          value !== null &&
+          value.protocol === protocol &&
+          value.version === version &&
+          value.sessionId === sessionId &&
+          typeof value.type === 'string'
+        );
+      }
+
+      function log(message) {
+        logElement.textContent += `${new Date().toLocaleTimeString()} ${message}\n`;
+      }
+    </script>
+  </body>
+</html>
