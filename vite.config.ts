@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   build: {
     lib: {
       entry: resolve(rootDir, 'src/index.ts'),
@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
     },
     target: 'es2020',
     minify: 'oxc',
-    sourcemap: mode === 'development' ? true : 'hidden',
+    sourcemap: false,
     emptyOutDir: true,
     reportCompressedSize: true,
   },
-}));
+});

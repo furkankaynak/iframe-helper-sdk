@@ -47,7 +47,7 @@ describe('production package configuration', () => {
     expect(fileName('cjs', 'index')).toBe('index.cjs');
     expect(build.target).toBe('es2020');
     expect(build.minify).toBe('oxc');
-    expect(build.sourcemap).toBe('hidden');
+    expect(build.sourcemap).toBe(false);
     expect(build.emptyOutDir).toBe(true);
     expect(build.reportCompressedSize).toBe(true);
   });
@@ -59,8 +59,18 @@ describe('production package configuration', () => {
     expect(compilerOptions.outDir).toBe('dist/types');
     expect(compilerOptions.declarationDir).toBe('dist/types');
     expect(compilerOptions.emitDeclarationOnly).toBe(true);
-    expect(compilerOptions.declarationMap).toBe(true);
+    expect(compilerOptions.declarationMap).toBe(false);
     expect(compilerOptions.stripInternal).toBe(true);
+  });
+
+  test('does not generate source map artifacts for the published package', async () => {
+    const prepareCjsTypes = await readFile(
+      join(projectRoot, 'scripts', 'prepare-cjs-types.mjs'),
+      'utf8',
+    );
+
+    expect(prepareCjsTypes).not.toContain('.map');
+    expect(prepareCjsTypes).not.toContain('sourceMappingURL');
   });
 });
 

@@ -5,7 +5,7 @@
     "rootDir": "src",
     "declarationDir": "dist/types",
     "emitDeclarationOnly": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "stripInternal": true
   },
   "include": ["src/**/*.ts"],
