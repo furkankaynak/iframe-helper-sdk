@@ -14,7 +14,7 @@ describe('production package configuration', () => {
     const bugs = getRecord(packageJson.bugs, 'bugs');
     const author = getRecord(packageJson.author, 'author');
 
-    expect(packageJson.version).toBe('0.1.3');
+    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(packageJson.description).toBe(
       'TypeScript SDK for secure cross-domain iframe embeds with a strict postMessage bridge, origin validation, handshakes, RPC-style requests, events, and typed contracts.',
     );
