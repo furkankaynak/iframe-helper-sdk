@@ -80,7 +80,7 @@
     "build:prod": "vite build && tsc --project tsconfig.build.json && node scripts/prepare-cjs-types.mjs",
     "example:manual:iframe": "vite playground/manual/iframe --host 127.0.0.1 --port 5174 --strictPort",
     "example:manual:parent": "vite playground/manual/parent --host 127.0.0.1 --port 5173 --strictPort",
-    "test": "vitest run --passWithNoTests",
+    "test": "npm run build:prod && vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "publint": "publint",

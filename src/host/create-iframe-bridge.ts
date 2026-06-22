@@ -3,6 +3,7 @@ import { BridgeTransport } from '../messaging/post-message-transport.js';
 import type {
   BridgePlugin,
   BridgePluginHandle,
+  BridgePluginSetupContext,
   IframeBridge,
   IframeBridgeConfig,
   IframeBridgeOptions,
@@ -42,7 +43,11 @@ export function createIframeBridge(
   configureIframe(iframe, normalizedConfig);
   emitConfigWarnings(normalizedConfig, diagnostics);
 
-  const plugins = instantiatePlugins(options.plugins);
+  const plugins = instantiatePlugins(options.plugins, {
+    securityProfile: normalizedConfig.securityProfile,
+    sessionId: normalizedConfig.bootstrap.session.paramValue,
+    warn: (event) => diagnostics.warn(event),
+  });
 
   const bridge = new IframeBridgeLifecycleController({
     clearTimeout: dependencies.clearTimeout ?? ((timer) => clearTimeout(timer)),
@@ -63,10 +68,11 @@ export function createIframeBridge(
 
 function instantiatePlugins(
   plugins: readonly BridgePlugin[] | undefined,
+  context: BridgePluginSetupContext,
 ): readonly BridgePluginHandle[] {
   if (plugins === undefined || plugins.length === 0) {
     return [];
   }
 
-  return Object.freeze(plugins.map((plugin) => plugin()));
+  return Object.freeze(plugins.map((plugin) => plugin(context)));
 }

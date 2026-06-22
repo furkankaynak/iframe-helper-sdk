@@ -168,6 +168,32 @@ describe('createIframeBridge', () => {
     expect(harness.iframe.style.height).toBe('480px');
   });
 
+  test('warns when resize is enabled without strict max bounds in development mode', () => {
+    vi.useFakeTimers();
+    const warnings: DiagnosticEvent[] = [];
+
+    createHarness({
+      diagnostics: { logger: { warn: (event) => warnings.push(event) } },
+      resize: { axis: 'height' },
+    });
+
+    expect(warnings).toEqual([
+      expect.objectContaining({
+        code: 'CONFIG_UNBOUNDED_RESIZE',
+        details: { axis: 'height', missingBounds: ['maxHeightPx'] },
+        sessionId,
+      }),
+    ]);
+  });
+
+  test('strict profile rejects resize enabled without max bounds for the active axis', () => {
+    vi.useFakeTimers();
+
+    expect(() => createHarness({ resize: { axis: 'height' }, securityProfile: 'strict' })).toThrow(
+      IframeBridgeError,
+    );
+  });
+
   test('invokes resize onResize after ready with requested and applied dimensions', () => {
     vi.useFakeTimers();
     const onResize = vi.fn();
@@ -223,7 +249,7 @@ describe('createIframeBridge', () => {
           },
         },
       },
-      resize: {},
+      resize: { maxHeightPx: 900, maxWidthPx: 1200 },
     });
     const handler = vi.fn();
 
@@ -254,6 +280,8 @@ describe('createIframeBridge', () => {
         },
       },
       resize: {
+        maxHeightPx: 900,
+        maxWidthPx: 1200,
         onResize() {
           throw new Error('consumer callback failed');
         },
@@ -481,6 +509,7 @@ type CreateHarnessOptions = {
   readonly handshakeTimeoutMs?: number;
   readonly plugins?: readonly BridgePlugin[];
   readonly resize?: IframeBridgeResizeConfig;
+  readonly securityProfile?: IframeBridgeConfig['securityProfile'];
 };
 
 function createHarness(options: CreateHarnessOptions = {}) {
@@ -512,6 +541,9 @@ function createHarness(options: CreateHarnessOptions = {}) {
       iframeAttributes: {
         title: 'Embedded child',
       },
+      ...(options.securityProfile === undefined
+        ? {}
+        : { securityProfile: options.securityProfile }),
       src: 'https://child.example/app',
     },
     {

@@ -31,7 +31,7 @@ If you're looking for conceptual explanations, see [Core Concepts](./core-concep
 <details>
 <summary>All exported types</summary>
 
-`IframeBridge`, `IframeBridgeConfig`, `IframeBridgeOptions`, `IframeBridgeContract`, `IframeBridgeErrorCode`, `IframeBridgeErrorOptions`, `IframeBridgeEventHandler`, `IframeBridgeIframeAttributes`, `IframeBridgeBootstrapConfig`, `IframeBridgeBootstrapSessionConfig`, `IframeBridgeBootstrapParentOriginConfig`, `IframeBridgeQueueConfig`, `IframeBridgeResizeAxis`, `IframeBridgeResizeCallback`, `IframeBridgeResizeConfig`, `IframeBridgeResizeEvent`, `IframeBridgeResizePayload`, `IframeBridgeTimeoutConfig`, `IframeBridgeDiagnosticsConfig`, `IframeBridgeLogger`, `IframeBridgeSecurityProfile`, `IframeBridgeRequestContract`, `TypedIframeBridge`, `OperationOptions`, `LifecycleState`, `DiagnosticEvent`, `DiagnosticLevel`, `DiagnosticRecorder`, `DiagnosticRecorderEntry`, `DiagnosticRecorderOptions`, `BridgePlugin`, `BridgePluginContext`, `BridgePluginHandle`, `BridgeEnvelope`, `BridgeReadyEnvelope`, `BridgeConnectedEnvelope`, `BridgeEventEnvelope`, `BridgeRequestEnvelope`, `BridgeResponseEnvelope`, `BridgeEnvelopeBase`, `BridgeEnvelopeError`, `BridgeMessageType`, `BridgeProtocolName`, `BridgeProtocolVersion`, `BootstrapParamLocation`
+`IframeBridge`, `IframeBridgeConfig`, `IframeBridgeOptions`, `IframeBridgeContract`, `IframeBridgeErrorCode`, `IframeBridgeErrorOptions`, `IframeBridgeEventHandler`, `IframeBridgeIframeAttributes`, `IframeBridgeBootstrapConfig`, `IframeBridgeBootstrapSessionConfig`, `IframeBridgeBootstrapParentOriginConfig`, `IframeBridgeQueueConfig`, `IframeBridgeResizeAxis`, `IframeBridgeResizeCallback`, `IframeBridgeResizeConfig`, `IframeBridgeResizeEvent`, `IframeBridgeResizePayload`, `IframeBridgeTimeoutConfig`, `IframeBridgeDiagnosticsConfig`, `IframeBridgeLogger`, `IframeBridgeSecurityProfile`, `IframeBridgeRequestContract`, `TypedIframeBridge`, `OperationOptions`, `LifecycleState`, `DiagnosticEvent`, `DiagnosticLevel`, `DiagnosticRecorder`, `DiagnosticRecorderEntry`, `DiagnosticRecorderOptions`, `BridgePlugin`, `BridgePluginContext`, `BridgePluginHandle`, `BridgePluginSetupContext`, `BridgeEnvelope`, `BridgeReadyEnvelope`, `BridgeConnectedEnvelope`, `BridgeEventEnvelope`, `BridgeRequestEnvelope`, `BridgeResponseEnvelope`, `BridgeEnvelopeBase`, `BridgeEnvelopeError`, `BridgeMessageType`, `BridgeProtocolName`, `BridgeProtocolVersion`, `BootstrapParamLocation`
 
 </details>
 
@@ -124,7 +124,7 @@ const user = await bridge.request('user:get', { id: '123' });
 - `CONFIG_UNSAFE_ORIGIN` — HTTP non-localhost origin without `allowInsecureLocalhost`
 - `CONFIG_INVALID_TIMEOUT` — invalid `handshakeTimeoutMs` or `operationTimeoutMs`
 - `CONFIG_INVALID_QUEUE` — invalid `queue.maxSize`
-- `CONFIG_INVALID_RESIZE` — invalid `resizePlugin()` axis, bounds, offsets, or callback
+- `CONFIG_INVALID_RESIZE` — invalid `resizePlugin()` axis, bounds, offsets, callback, or missing strict-mode max bounds
 - `CONFIG_INVALID_SECURITY_PROFILE` — `securityProfile` is not `'development'` or `'strict'`
 
 ---
@@ -712,7 +712,7 @@ type IframeBridgeResizePayload =
   | { width?: number; height: number };
 ```
 
-`IframeBridgeResizeConfig` is passed to `resizePlugin(config)` from `iframe-helper-sdk/resize`. `IframeBridgeResizePayload` documents the reserved iframe-side event payload for `iframe-bridge:resize`.
+`IframeBridgeResizeConfig` is passed to `resizePlugin(config)` from `iframe-helper-sdk/resize`. The config object is optional; `resizePlugin()` enables both axes with no bounds. Unbounded active axes warn in development mode and throw `CONFIG_INVALID_RESIZE` in strict mode. `IframeBridgeResizePayload` documents the reserved iframe-side event payload for `iframe-bridge:resize`.
 
 ```ts
 import { createIframeBridge } from 'iframe-helper-sdk';
@@ -743,15 +743,7 @@ const bridge = createIframeBridge(
 
 Offsets are added before min/max bounds are applied. `onResize` is called after the SDK applies the final dimensions; if it throws, the resize remains applied and the SDK emits a `RESIZE_CALLBACK_ERROR` diagnostic warning.
 
-The iframe sends the payload inside a standard `bridge:event` envelope:
-
-```js
-postToParent({
-  type: 'bridge:event',
-  name: 'iframe-bridge:resize',
-  payload: { width: 800, height: 640 },
-});
-```
+Full usage, iframe-side events, security behavior, and diagnostics are covered in [Resize Plugin](./plugins/resize).
 
 ---
 
@@ -1058,7 +1050,13 @@ type IframeBridgeOptions = {
   plugins?: readonly BridgePlugin[];
 };
 
-type BridgePlugin = () => BridgePluginHandle;
+type BridgePlugin = (ctx: BridgePluginSetupContext) => BridgePluginHandle;
+
+type BridgePluginSetupContext = {
+  readonly securityProfile: 'development' | 'strict';
+  readonly sessionId: string;
+  readonly warn: (event: DiagnosticEvent) => void;
+};
 
 type BridgePluginHandle = {
   readonly events: readonly string[];
@@ -1314,6 +1312,8 @@ type BridgeEnvelope<TPayload = unknown> =
 
 - **[Error Codes](./error-codes)** — Every error code with common causes and recovery actions.
 - **[Configuration](./configuration)** — Complete reference for every `IframeBridgeConfig` option.
+- **[Plugins](./plugins)** — Optional tree-shakable parent-side bridge extensions.
+- **[Resize Plugin](./plugins/resize)** — Parent setup, iframe event payload, bounds, and diagnostics.
 - **[Type-Safe Bridge](./typed-bridge)** — Deep-dive on contract maps and typed communication.
 - **[Wire Protocol](./wire-protocol)** — The envelope specification for iframe-side integrations.
 - **[Security](./security)** — Security model, profiles, CSP guidance, and production checklist.

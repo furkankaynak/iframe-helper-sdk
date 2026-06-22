@@ -36,6 +36,10 @@ export default {
           editUrl: 'https://github.com/furkankaynak/iframe-helper-sdk/edit/main/documentation/',
         },
         blog: false,
+        gtag: {
+          trackingID: 'G-W874H14NHJ',
+          anonymizeIP: true,
+        },
         theme: {
           customCss: './src/css/custom.css',
         },

@@ -183,17 +183,11 @@ const bridge = createIframeBridge(
 );
 ```
 
-```js
-postToParent({
-  type: 'bridge:event',
-  name: 'iframe-bridge:resize',
-  payload: { width: 800, height: 640 },
-});
-```
+The iframe sends the requested dimensions through a standard `bridge:event` named `iframe-bridge:resize`. The parent still validates origin, source window, session id, protocol, version, and envelope shape before applying dimensions to the owned iframe element.
 
-The parent still validates origin, source window, session id, protocol, version, and envelope shape before applying dimensions to the owned iframe element.
+`offsetWidthPx` and `offsetHeightPx` add fixed parent-side pixels before min/max bounds are applied. In development mode, the SDK warns if resize is enabled without max bounds for every active axis; in `securityProfile: 'strict'`, missing active max bounds throw `CONFIG_INVALID_RESIZE`.
 
-`offsetWidthPx` and `offsetHeightPx` add fixed parent-side pixels before min/max bounds are applied. Send one resize event immediately after `bridge:connected`, then send again whenever content dimensions change.
+Full guide: [Resize Plugin](https://furkankaynak.github.io/iframe-helper-sdk/plugins/resize).
 
 ## Type-Safe Bridge
 
@@ -267,7 +261,7 @@ Read the full [Security guide](https://furkankaynak.github.io/iframe-helper-sdk/
 
 ## API Surface
 
-Import public APIs from the package root only.
+Import core public APIs from the package root. Optional plugins use documented subpath exports such as `iframe-helper-sdk/resize`; never import from internal `src` or `dist` paths.
 
 ```ts
 import {
@@ -282,6 +276,8 @@ import {
   normalizeBridgeRemoteError,
   validateBridgeEnvelope,
 } from 'iframe-helper-sdk';
+
+import { resizePlugin } from 'iframe-helper-sdk/resize';
 ```
 
 | Export                       | Kind     | Purpose                                             |
@@ -296,6 +292,7 @@ import {
 | `isBridgeEnvelope`           | Function | Type guard for bridge envelopes                     |
 | `validateBridgeEnvelope`     | Function | Validate and return a typed bridge envelope         |
 | `normalizeBridgeRemoteError` | Function | Normalize iframe-side error responses               |
+| `resizePlugin`               | Function | Optional child-driven resize plugin from `./resize` |
 
 ### Bridge Instance
 

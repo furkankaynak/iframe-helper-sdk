@@ -18,6 +18,7 @@ Embed iframes from separate origins without reaching for `window.postMessage` di
 - **Request/response with timeouts** — every request gets a timeout, and timed-out operations are cleaned up so they can't interfere with future communication.
 - **Compile-time typed contracts** — optional `createTypedIframeBridge` provides full TypeScript narrowing for method names, payloads, and responses without any runtime cost.
 - **Fire-and-forget events** — send events to the iframe (or listen for inbound events) as one-way notifications with no response overhead.
+- **Optional plugins** — add tree-shakable parent-side behavior such as child-driven resize through documented plugin subpaths.
 - **Diagnostics built in** — plug in a diagnostic recorder to capture lifecycle events, message routing, and errors for debugging and monitoring.
 - **Zero dependencies** — the runtime payload is a single ES2020 bundle with no external dependencies.
 - **~2 KB gzipped** — small enough to not matter in your bundle budget.
@@ -94,4 +95,5 @@ You're embedding an iframe that lives on a different origin (or the same origin,
 
 - **[Getting Started](./getting-started)** — Install the SDK and create your first bridge in under 5 minutes.
 - **[Core Concepts](./core-concepts)** — Understand the lifecycle, handshake, and communication patterns.
+- **[Plugins](./plugins)** — Add optional behavior such as child-driven iframe resize.
 - **[GitHub](https://github.com/furkankaynak/iframe-helper-sdk)** — Source code, issues, and contributing.

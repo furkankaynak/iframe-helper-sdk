@@ -130,7 +130,13 @@ export type BridgePluginHandle = {
   onEvent(envelope: BridgeEventEnvelope, ctx: BridgePluginContext): void;
 };
 
-export type BridgePlugin = () => BridgePluginHandle;
+export type BridgePluginSetupContext = {
+  readonly securityProfile: IframeBridgeSecurityProfile;
+  readonly sessionId: string;
+  readonly warn: (event: DiagnosticEvent) => void;
+};
+
+export type BridgePlugin = (ctx: BridgePluginSetupContext) => BridgePluginHandle;
 
 export type IframeBridgeOptions = {
   readonly plugins?: readonly BridgePlugin[];

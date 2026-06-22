@@ -315,6 +315,8 @@ The examples above use the bare minimum. Here are the most common options you'll
 | `sandbox`                      | Iframe sandbox attribute for capability restriction.                                |
 | `securityProfile`              | `'strict'` for production fail-fast checks, `'development'` (default) for warnings. |
 
+Optional plugins, such as `resizePlugin()` from `iframe-helper-sdk/resize`, are registered through the second factory argument. See [Plugins](./plugins).
+
 Full reference with every option: [Configuration](./configuration).
 
 ---
@@ -323,6 +325,7 @@ Full reference with every option: [Configuration](./configuration).
 
 - **[Core Concepts](./core-concepts)** — Deep dive into the lifecycle, handshake, and communication patterns.
 - **[Configuration](./configuration)** — Every option, grouped by category, with defaults and use cases.
+- **[Plugins](./plugins)** — Add optional tree-shakable behavior such as child-driven resize.
 - **[Type-Safe Bridge](./typed-bridge)** — Define a contract map once, get full TypeScript narrowing everywhere.
 - **[Use Cases & Recipes](./use-cases)** — Copy-pasteable config recipes for production, development, sandboxing, and more.
 - **[Debugging & Diagnostics](./debugging)** — Plug in diagnostic recorders and logger hooks for visibility.

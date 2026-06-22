@@ -18,6 +18,16 @@ describe('resizePlugin', () => {
     expect(handle.events).toEqual([resizeEventName]);
   });
 
+  test('uses default resize options when called without a config object', () => {
+    const iframe = createFakeIframe();
+    const handle = resizePlugin()(setupContext());
+
+    handle.onEvent(eventEnvelope({ height: 480, width: 720 }), pluginContext(iframe));
+
+    expect(iframe.style.width).toBe('720px');
+    expect(iframe.style.height).toBe('480px');
+  });
+
   test('applies valid width and height after ready when resize is enabled by default', () => {
     const iframe = createFakeIframe();
     const handle = makeHandle({});
@@ -169,7 +179,15 @@ describe('resizePlugin', () => {
 type WarningsSink = { code?: string; details?: unknown; sessionId?: string }[];
 
 function makeHandle(config: Parameters<typeof resizePlugin>[0] = {}): BridgePluginHandle {
-  return resizePlugin(config)();
+  return resizePlugin(config)(setupContext());
+}
+
+function setupContext(): Parameters<ReturnType<typeof resizePlugin>>[0] {
+  return {
+    securityProfile: 'development',
+    sessionId: 'session-1',
+    warn: () => undefined,
+  };
 }
 
 function createFakeIframe(): HTMLIFrameElement {

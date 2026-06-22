@@ -17,17 +17,17 @@ For a working production configuration, see [Use Cases & Recipes](./use-cases). 
 
 These protections are enforced automatically by the SDK. You don't need to opt in — they apply to every bridge instance.
 
-| Guarantee                      | How it works                                                                                                                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Exact target origin**        | Parent-to-iframe `postMessage` calls always use an exact, validated origin. Wildcard origins (`'*'`) are rejected at config time with `CONFIG_UNSAFE_ORIGIN`.                                                |
-| **Inbound message validation** | Every incoming message is checked against `event.origin`, `event.source`, session id, protocol name (`'iframe-bridge'`), protocol version (`1`), and envelope shape before being processed.                  |
-| **HTTPS-by-default**           | `src` URLs must use HTTPS, except for explicit `localhost` development mode controlled by `allowInsecureLocalhost`.                                                                                          |
-| **Unsafe scheme rejection**    | `javascript:`, `data:`, `blob:`, and `srcdoc` iframe URLs are rejected synchronously with `CONFIG_INVALID_SRC`. Embedded credentials in URLs are also rejected.                                              |
-| **Bounded pre-ready queue**    | Operations called before handshake readiness are queued with a configurable limit (default: 50). Queue overflow throws `QUEUE_LIMIT_EXCEEDED`. The queue closes on handshake failure or destroy.             |
-| **Complete cleanup**           | `destroy()` removes all SDK-owned listeners, timers, pending requests, event waits, and the owned iframe. Idempotent — safe to call multiple times.                                                          |
-| **Sanitized diagnostics**      | Diagnostic events do not include raw `postMessage` data or application payloads by default. Browser `messageerror` events are surfaced as `MESSAGE_DESERIALIZATION_ERROR` without raw message content.       |
-| **Strict security profile**    | `securityProfile: 'strict'` converts risky-but-allowed configurations into hard errors: rejects insecure localhost mode, wildcard Permissions Policy grants, and sandbox combinations that weaken isolation. |
-| **Duplicate message handling** | Only the first `bridge:ready` is accepted. Duplicate responses for the same `requestId` are ignored. Duplicate ready messages do not re-flush the queue or re-send `bridge:connected`.                       |
+| Guarantee                      | How it works                                                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Exact target origin**        | Parent-to-iframe `postMessage` calls always use an exact, validated origin. Wildcard origins (`'*'`) are rejected at config time with `CONFIG_UNSAFE_ORIGIN`.                                                                              |
+| **Inbound message validation** | Every incoming message is checked against `event.origin`, `event.source`, session id, protocol name (`'iframe-bridge'`), protocol version (`1`), and envelope shape before being processed.                                                |
+| **HTTPS-by-default**           | `src` URLs must use HTTPS, except for explicit `localhost` development mode controlled by `allowInsecureLocalhost`.                                                                                                                        |
+| **Unsafe scheme rejection**    | `javascript:`, `data:`, `blob:`, and `srcdoc` iframe URLs are rejected synchronously with `CONFIG_INVALID_SRC`. Embedded credentials in URLs are also rejected.                                                                            |
+| **Bounded pre-ready queue**    | Operations called before handshake readiness are queued with a configurable limit (default: 50). Queue overflow throws `QUEUE_LIMIT_EXCEEDED`. The queue closes on handshake failure or destroy.                                           |
+| **Complete cleanup**           | `destroy()` removes all SDK-owned listeners, timers, pending requests, event waits, and the owned iframe. Idempotent — safe to call multiple times.                                                                                        |
+| **Sanitized diagnostics**      | Diagnostic events do not include raw `postMessage` data or application payloads by default. Browser `messageerror` events are surfaced as `MESSAGE_DESERIALIZATION_ERROR` without raw message content.                                     |
+| **Strict security profile**    | `securityProfile: 'strict'` converts risky-but-allowed configurations into hard errors: rejects insecure localhost mode, wildcard Permissions Policy grants, sandbox combinations that weaken isolation, and unbounded resize plugin axes. |
+| **Duplicate message handling** | Only the first `bridge:ready` is accepted. Duplicate responses for the same `requestId` are ignored. Duplicate ready messages do not re-flush the queue or re-send `bridge:connected`.                                                     |
 
 ---
 
@@ -83,6 +83,11 @@ The `securityProfile` option controls how aggressively the SDK enforces security
 <td>Throws <code>CONFIG_UNSAFE_SANDBOX</code></td>
 </tr>
 <tr>
+<td>Resize plugin without max bounds for active axes</td>
+<td>Diagnostic warning</td>
+<td>Throws <code>CONFIG_INVALID_RESIZE</code></td>
+</tr>
+<tr>
 <td><code>allowInsecureLocalhost: true</code> with strict</td>
 <td>Allowed</td>
 <td>Forced to <code>false</code>; setting <code>true</code> throws <code>CONFIG_UNSAFE_ORIGIN</code></td>
@@ -118,6 +123,12 @@ const bridge = createIframeBridge({
 In `'development'` mode, warnings are only delivered when a [diagnostics logger](./configuration#diagnosticslogger) is configured. Use `createDiagnosticRecorder` to capture them during development.
 
 :::
+
+### Plugin trust boundary
+
+Plugins are trusted parent-side code. The SDK validates origin, source window, session id, protocol, version, and envelope shape before dispatching plugin events, but plugin payload semantics remain plugin-specific.
+
+For `resizePlugin`, treat dimensions as child-controlled layout input. Set `maxWidthPx` and/or `maxHeightPx` for every active axis before using it with partner or untrusted iframes. In development mode missing max bounds produce `CONFIG_UNBOUNDED_RESIZE`; in strict mode they fail fast with `CONFIG_INVALID_RESIZE`. See [Resize Plugin](./plugins/resize) for the full setup.
 
 ---
 

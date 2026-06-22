@@ -49,6 +49,7 @@ export type {
   BridgePlugin,
   BridgePluginContext,
   BridgePluginHandle,
+  BridgePluginSetupContext,
   BridgeProtocolName,
   BridgeProtocolVersion,
   BridgeReadyEnvelope,

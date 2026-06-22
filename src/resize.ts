@@ -3,6 +3,7 @@ export type {
   BridgePlugin,
   BridgePluginContext,
   BridgePluginHandle,
+  BridgePluginSetupContext,
   IframeBridgeOptions,
   IframeBridgeResizeAxis,
   IframeBridgeResizeCallback,

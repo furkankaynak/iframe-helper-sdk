@@ -2,6 +2,7 @@ import { IframeBridgeError } from '../shared/errors.js';
 import type {
   BridgePlugin,
   BridgePluginContext,
+  BridgePluginSetupContext,
   IframeBridgeResizeAxis,
   IframeBridgeResizeConfig,
   IframeBridgeResizeEvent,
@@ -21,15 +22,19 @@ type NormalizedResize = {
   readonly onResize: IframeBridgeResizeConfig['onResize'];
 };
 
-export function resizePlugin(config: IframeBridgeResizeConfig): BridgePlugin {
+export function resizePlugin(config: IframeBridgeResizeConfig = {}): BridgePlugin {
   const normalized = normalizeResizeConfig(config);
 
-  return () => ({
-    events: [IFRAME_BRIDGE_RESIZE_EVENT],
-    onEvent(envelope, ctx) {
-      applyResize(envelope.payload, ctx, normalized);
-    },
-  });
+  return (ctx) => {
+    validateResizeSecurityBounds(normalized, ctx);
+
+    return {
+      events: [IFRAME_BRIDGE_RESIZE_EVENT],
+      onEvent(envelope, ctx) {
+        applyResize(envelope.payload, ctx, normalized);
+      },
+    };
+  };
 }
 
 function applyResize(payload: unknown, ctx: BridgePluginContext, resize: NormalizedResize): void {
@@ -155,6 +160,52 @@ function validateResizeBounds(
     'Resize minimum bound must be less than or equal to the maximum bound.',
     { details: { axis, max, min } },
   );
+}
+
+function validateResizeSecurityBounds(
+  resize: NormalizedResize,
+  ctx: BridgePluginSetupContext | undefined,
+): void {
+  if (!resize.enabled || ctx === undefined) {
+    return;
+  }
+
+  const missingBounds = getMissingMaxBounds(resize);
+
+  if (missingBounds.length === 0) {
+    return;
+  }
+
+  const details = { axis: resize.axis, missingBounds };
+
+  if (ctx.securityProfile === 'strict') {
+    throw new IframeBridgeError(
+      'CONFIG_INVALID_RESIZE',
+      'Strict security profile requires resize max bounds for active dimensions.',
+      { details },
+    );
+  }
+
+  ctx.warn({
+    code: 'CONFIG_UNBOUNDED_RESIZE',
+    details,
+    message: 'Resize plugin is enabled without max bounds for every active dimension.',
+    sessionId: ctx.sessionId,
+  });
+}
+
+function getMissingMaxBounds(resize: NormalizedResize): string[] {
+  const missingBounds: string[] = [];
+
+  if ((resize.axis === 'both' || resize.axis === 'width') && resize.maxWidthPx === undefined) {
+    missingBounds.push('maxWidthPx');
+  }
+
+  if ((resize.axis === 'both' || resize.axis === 'height') && resize.maxHeightPx === undefined) {
+    missingBounds.push('maxHeightPx');
+  }
+
+  return missingBounds;
 }
 
 function normalizeResizeOffset(offset: number | undefined, name: string): number {
