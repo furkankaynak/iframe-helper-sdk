@@ -661,6 +661,180 @@ queue: { maxSize: 20 },
 
 ---
 
+## Resize Plugin Options
+
+Resize is an optional tree-shakable plugin exported from `iframe-helper-sdk/resize`. The plugin lets the iframe request pixel width and height changes for the SDK-owned iframe element. This is useful for embedded apps whose content height or preferred width changes after load.
+
+```ts
+type IframeBridgeResizeConfig = {
+  enabled?: boolean;
+  axis?: 'width' | 'height' | 'both';
+  minWidthPx?: number;
+  maxWidthPx?: number;
+  minHeightPx?: number;
+  maxHeightPx?: number;
+  offsetWidthPx?: number;
+  offsetHeightPx?: number;
+  onResize?: (event: IframeBridgeResizeEvent) => void;
+};
+
+type IframeBridgeResizeEvent = {
+  readonly width?: number;
+  readonly height?: number;
+  readonly requestedWidth?: number;
+  readonly requestedHeight?: number;
+};
+```
+
+Resize is disabled unless the parent registers `resizePlugin()`. Supplying `resizePlugin({})` enables both-axis resizing with no bounds.
+
+```ts
+import { createIframeBridge } from 'iframe-helper-sdk';
+import { resizePlugin } from 'iframe-helper-sdk/resize';
+
+const bridge = createIframeBridge(
+  {
+    container: '#partner-frame',
+    src: 'https://partner.example/app',
+  },
+  {
+    plugins: [
+      resizePlugin({
+        minWidthPx: 320,
+        maxWidthPx: 1200,
+        minHeightPx: 240,
+        maxHeightPx: 900,
+        offsetHeightPx: 16,
+        onResize({ width, height }) {
+          console.log('iframe resized to', width, height);
+        },
+      }),
+    ],
+  },
+);
+```
+
+### Defaults
+
+| Option           | Default                         |
+| ---------------- | ------------------------------- |
+| Option           | Default                         |
+| ---------------- | ------------------------------- |
+| `resizePlugin()` | not registered (disabled)       |
+| `enabled`        | `true` when plugin is present   |
+| `axis`           | `'both'`                        |
+| `minWidthPx`     | `undefined`                     |
+| `maxWidthPx`     | `undefined`                     |
+| `minHeightPx`    | `undefined`                     |
+| `maxHeightPx`    | `undefined`                     |
+| `offsetWidthPx`  | `0`                             |
+| `offsetHeightPx` | `0`                             |
+| `onResize`       | `undefined`                     |
+
+### `enabled`
+
+**Type:** `boolean`
+
+Set to `false` to keep resize plugin options in place while ignoring resize events.
+
+```ts
+resizePlugin({ enabled: false });
+```
+
+When disabled, the plugin still claims the reserved `iframe-bridge:resize` event and suppresses user listeners, but does not apply dimensions.
+
+---
+
+### `axis`
+
+**Type:** `'width' | 'height' | 'both'`
+
+Controls which dimensions the iframe may update.
+
+```ts
+resizePlugin({ axis: 'height' });
+```
+
+- `'both'` (default) — apply `width` and `height` values from resize payloads.
+- `'width'` — apply only `width`; ignore `height`.
+- `'height'` — apply only `height`; ignore `width`.
+
+**Validation:** Must be one of the three values above. Invalid values throw `CONFIG_INVALID_RESIZE` synchronously.
+
+---
+
+### `minWidthPx`, `maxWidthPx`, `minHeightPx`, `maxHeightPx`
+
+**Type:** `number`
+
+Optional bounds for dimensions requested by the iframe. Values are pixel counts.
+
+```ts
+resizePlugin({
+  minWidthPx: 320,
+  maxWidthPx: 1200,
+  minHeightPx: 240,
+  maxHeightPx: 900,
+});
+```
+
+The SDK clamps incoming resize values to these bounds before applying `iframe.style.width` or `iframe.style.height`.
+
+**Validation:** Bounds must be non-negative integers. A minimum cannot be greater than its matching maximum. Invalid values throw `CONFIG_INVALID_RESIZE` synchronously.
+
+---
+
+### `offsetWidthPx`, `offsetHeightPx`
+
+**Type:** `number`
+
+Optional fixed pixel offsets added to accepted child dimensions before min/max bounds are applied. Use offsets for parent-side chrome such as borders, shadows, or known padding around iframe content.
+
+```ts
+resizePlugin({
+  offsetHeightPx: 16,
+  offsetWidthPx: -8,
+});
+```
+
+Offsets may be positive, negative, or zero, but must be finite integers. If an offset would make a dimension negative, the SDK clamps the final style value to `0px` unless you configured a higher minimum bound.
+
+---
+
+### `onResize`
+
+**Type:** `(event: IframeBridgeResizeEvent) => void`
+
+Called after a valid resize event is applied to the iframe element. The event contains final dimensions after axis filtering, offsets, and bounds, plus the original validated child dimensions.
+
+```ts
+resizePlugin({
+  onResize({ width, height, requestedWidth, requestedHeight }) {
+    console.log({ width, height, requestedWidth, requestedHeight });
+  },
+});
+```
+
+`onResize` is observation-only. It does not approve, reject, or modify resize events. If it throws, the SDK keeps the applied iframe style and emits a `RESIZE_CALLBACK_ERROR` diagnostic warning.
+
+### Iframe-side resize event
+
+After the bridge is ready, the iframe can send a reserved event:
+
+```js
+postToParent({
+  type: 'bridge:event',
+  name: 'iframe-bridge:resize',
+  payload: { width: 800, height: 640 },
+});
+```
+
+Invalid resize payloads are ignored and reported through diagnostics as `RESIZE_INVALID_PAYLOAD`. The parent still validates origin, source window, session id, protocol, version, and envelope shape before any resize side effect occurs.
+
+Send one resize event immediately after receiving `bridge:connected`, then send again whenever content dimensions change.
+
+---
+
 ## Timeout Options
 
 Timeout options control how long the SDK waits for responses from the iframe after posting a request.
@@ -890,6 +1064,24 @@ type IframeBridgeConfig = {
   queue?: {
     enabled?: boolean;
     maxSize?: number;
+  };
+
+  // ── Resize ────────────────────────────────
+  resize?: {
+    enabled?: boolean;
+    axis?: 'width' | 'height' | 'both';
+    minWidthPx?: number;
+    maxWidthPx?: number;
+    minHeightPx?: number;
+    maxHeightPx?: number;
+    offsetWidthPx?: number;
+    offsetHeightPx?: number;
+    onResize?: (event: {
+      width?: number;
+      height?: number;
+      requestedWidth?: number;
+      requestedHeight?: number;
+    }) => void;
   };
 
   // ── Timeouts ──────────────────────────────

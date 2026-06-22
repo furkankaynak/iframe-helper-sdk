@@ -404,6 +404,22 @@ Key points:
 
 ---
 
+## Advanced App-Level Focus Management
+
+Use this guidance when an iframe appears inside a modal, drawer, or overlay.
+
+Focus trapping is application UI behavior, not bridge behavior. The parent shell should own the visible modal boundary, `Escape` handling, ARIA state, and focus restoration. The iframe app should manage focus inside its own document.
+
+For cross-origin iframes, neither side can fully inspect or control the other's focusable elements. If you need coordinated keyboard behavior, use app-defined bridge events or requests for signals such as "modal opened", "modal closed", or "focus boundary reached". Keep the policy in your UI layer; the SDK only transports validated messages.
+
+Key points:
+
+- Test modal iframe flows with keyboard-only navigation.
+- Always provide a keyboard path to close or leave the modal.
+- Do not rely on the SDK to guarantee WCAG conformance or focus-trap correctness.
+
+---
+
 ## Next Steps
 
 - **[Configuration](./configuration)** — Full reference for every option used in these recipes.

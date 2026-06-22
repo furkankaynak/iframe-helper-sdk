@@ -1,6 +1,12 @@
 import { createDiagnostics } from '../diagnostics/diagnostics.js';
 import { BridgeTransport } from '../messaging/post-message-transport.js';
-import type { IframeBridge, IframeBridgeConfig } from '../types/index.js';
+import type {
+  BridgePlugin,
+  BridgePluginHandle,
+  IframeBridge,
+  IframeBridgeConfig,
+  IframeBridgeOptions,
+} from '../types/index.js';
 import {
   createQueue,
   getCurrentDocument,
@@ -25,6 +31,7 @@ export type IframeBridgeLifecycle = IframeBridge;
 export function createIframeBridge(
   config: IframeBridgeConfig,
   dependencies: CreateIframeBridgeDependencies = {},
+  options: IframeBridgeOptions = {},
 ): IframeBridge {
   const normalizedConfig = normalizeConfig(config);
   const diagnostics = createDiagnostics(config.diagnostics);
@@ -35,18 +42,31 @@ export function createIframeBridge(
   configureIframe(iframe, normalizedConfig);
   emitConfigWarnings(normalizedConfig, diagnostics);
 
+  const plugins = instantiatePlugins(options.plugins);
+
   const bridge = new IframeBridgeLifecycleController({
     clearTimeout: dependencies.clearTimeout ?? ((timer) => clearTimeout(timer)),
     config: normalizedConfig,
     diagnostics,
     iframe,
     parentWindow,
+    plugins,
     queue: createQueue(normalizedConfig, dependencies.queueFactory),
-    remount: () => createIframeBridge(config, dependencies),
+    remount: () => createIframeBridge(config, dependencies, options),
     setTimeout: dependencies.setTimeout ?? ((handler, timeoutMs) => setTimeout(handler, timeoutMs)),
     transportFactory: dependencies.transportFactory ?? ((options) => new BridgeTransport(options)),
   });
 
   bridge.mount();
   return bridge;
+}
+
+function instantiatePlugins(
+  plugins: readonly BridgePlugin[] | undefined,
+): readonly BridgePluginHandle[] {
+  if (plugins === undefined || plugins.length === 0) {
+    return [];
+  }
+
+  return Object.freeze(plugins.map((plugin) => plugin()));
 }

@@ -10,6 +10,8 @@ import { IframeBridgeError, createOperationAbortedError } from '../shared/errors
 import type {
   BridgeEnvelope,
   BridgeEventEnvelope,
+  BridgePluginContext,
+  BridgePluginHandle,
   BridgeResponseEnvelope,
   IframeBridge,
   IframeBridgeEventHandler,
@@ -28,6 +30,7 @@ export type IframeBridgeLifecycleControllerOptions = {
   readonly diagnostics: BridgeDiagnostics;
   readonly iframe: HTMLIFrameElement;
   readonly parentWindow: BridgeTransportWindowLike;
+  readonly plugins: readonly BridgePluginHandle[];
   readonly queue: BridgeLifecycleQueue | undefined;
   readonly remount: () => IframeBridge;
   readonly setTimeout: (handler: () => void, timeoutMs: number) => ReturnType<typeof setTimeout>;
@@ -46,6 +49,7 @@ export class IframeBridgeLifecycleController implements IframeBridge {
   readonly #eventRegistry: BridgeEventRegistry;
   readonly #iframe: HTMLIFrameElement;
   readonly #parentWindow: BridgeTransportWindowLike;
+  readonly #pluginHandles: readonly BridgePluginHandle[];
   readonly #queue: BridgeLifecycleQueue | undefined;
   readonly #readyWaiters = new Set<ReadyWaiter>();
   readonly #remount: () => IframeBridge;
@@ -65,6 +69,7 @@ export class IframeBridgeLifecycleController implements IframeBridge {
     this.#diagnostics = options.diagnostics;
     this.#iframe = options.iframe;
     this.#parentWindow = options.parentWindow;
+    this.#pluginHandles = options.plugins;
     this.#queue = options.queue;
     this.#remount = options.remount;
     this.#setTimeout = options.setTimeout;
@@ -280,8 +285,23 @@ export class IframeBridgeLifecycleController implements IframeBridge {
       return;
     }
 
+    for (const handle of this.#pluginHandles) {
+      if (handle.events.includes(envelope.name)) {
+        handle.onEvent(envelope, this.#pluginContext);
+        return;
+      }
+    }
+
     this.#eventRegistry.handleEvent(envelope);
   };
+
+  get #pluginContext(): BridgePluginContext {
+    return {
+      iframe: this.#iframe,
+      sessionId: this.#config.bootstrap.session.paramValue,
+      warn: (event) => this.#diagnostics.warn(event),
+    };
+  }
 
   readonly #handleResponse = (envelope: BridgeResponseEnvelope): void => {
     if (this.#state !== 'ready') {

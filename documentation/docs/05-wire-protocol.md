@@ -237,6 +237,29 @@ if (envelope.type === 'bridge:event') {
 }
 ```
 
+#### Reserved resize event
+
+The `resizePlugin()` exported from `iframe-helper-sdk/resize` claims the `iframe-bridge:resize` event name for opt-in iframe resizing. When the parent registers the plugin, the SDK consumes this event and applies pixel dimensions to the owned iframe element. Claimed plugin events are not dispatched to user `bridge.on()` listeners.
+
+```js
+postToParent({
+  type: 'bridge:event',
+  name: 'iframe-bridge:resize',
+  payload: { width: 800, height: 640 },
+});
+```
+
+Payload fields, with at least one dimension required:
+
+| Field    | Type     | Description                                  |
+| -------- | -------- | -------------------------------------------- |
+| `width`  | `number` | Requested iframe width in pixels. Optional.  |
+| `height` | `number` | Requested iframe height in pixels. Optional. |
+
+The parent validates the normal envelope first: origin, source window, session id, protocol, version, and envelope shape. Then it validates the resize payload. Invalid resize payloads are ignored and may emit a `RESIZE_INVALID_PAYLOAD` diagnostic when the parent configured diagnostics.
+
+The iframe sends content dimensions only. Parent-side axis filtering, offsets, min/max bounds, and `resizePlugin({ onResize })` run inside the SDK after envelope validation.
+
 ### `bridge:request`
 
 **Direction:** Parent → Iframe (MVP)  
@@ -417,6 +440,47 @@ if (envelope.type === 'bridge:connected') {
 
 This is optional — the parent will queue pre-ready operations regardless.
 
+### 8. Send resize events when the parent registered the resize plugin (optional)
+
+If the parent has registered `resizePlugin()`, send `iframe-bridge:resize` after `bridge:connected` and whenever your content dimensions change.
+
+```js
+let connected = false;
+let lastResize = '';
+
+function sendResize() {
+  if (!connected) return;
+
+  const width = Math.ceil(
+    Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
+  );
+  const height = Math.ceil(
+    Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+  );
+  const nextResize = `${width}x${height}`;
+
+  if (nextResize === lastResize) return;
+  lastResize = nextResize;
+
+  postToParent({
+    type: 'bridge:event',
+    name: 'iframe-bridge:resize',
+    payload: { width, height },
+  });
+}
+
+const resizeObserver = new ResizeObserver(sendResize);
+
+resizeObserver.observe(document.documentElement);
+
+// In your message handler:
+if (envelope.type === 'bridge:connected') {
+  connected = true;
+  // Send an initial size immediately, then let ResizeObserver handle changes.
+  sendResize();
+}
+```
+
 ---
 
 ## Structured Clone Data
@@ -500,6 +564,7 @@ If the handshake timer expires before a valid `bridge:ready` arrives, the bridge
 - [ ] Send `bridge:ready` to the exact parent origin with the correct `sessionId`.
 - [ ] Listen for `message` events and validate `event.origin` before processing.
 - [ ] Route incoming messages by `type`: handle `bridge:connected`, `bridge:event`, and `bridge:request`.
+- [ ] If the resize plugin is enabled on the parent, send an initial `iframe-bridge:resize` with numeric pixel dimensions after `bridge:connected`, then repeat when dimensions change.
 - [ ] Echo `sessionId` on every outgoing message.
 - [ ] Respond to every `bridge:request` — including unknown methods with an error response.
 - [ ] Use the error shape `{ code, message, data? }` for error responses.

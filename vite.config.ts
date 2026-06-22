@@ -8,9 +8,12 @@ const rootDir = fileURLToPath(new URL('.', import.meta.url));
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(rootDir, 'src/index.ts'),
+      entry: {
+        index: resolve(rootDir, 'src/index.ts'),
+        resize: resolve(rootDir, 'src/resize.ts'),
+      },
       formats: ['es', 'cjs'],
-      fileName: (format) => (format === 'cjs' ? 'index.cjs' : 'index.js'),
+      fileName: (format, entryName) => (format === 'cjs' ? `${entryName}.cjs` : `${entryName}.js`),
     },
     target: 'es2020',
     minify: 'oxc',

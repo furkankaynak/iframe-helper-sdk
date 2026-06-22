@@ -10,6 +10,7 @@ const allowedSrcRootEntries = new Set([
   'index.ts',
   'messaging',
   'protocol',
+  'resize.ts',
   'shared',
   'types',
 ]);
@@ -42,6 +43,7 @@ describe('project folder structure', () => {
       'protocol',
       'public-api.test.ts',
       'shared',
+      'tree-shaking.test.ts',
     ]);
   });
 

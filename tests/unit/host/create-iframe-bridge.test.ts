@@ -5,13 +5,22 @@ import {
   type BridgeLifecycleQueue,
   type BridgeLifecycleTransport,
 } from '../../../src/host/create-iframe-bridge';
+import { resizePlugin } from '../../../src/host/resize-plugin';
 import { IframeBridgeError, type IframeBridgeErrorCode } from '../../../src/shared/errors';
 import type {
   BridgeMessageEvent,
   BridgeTransportOptions,
   BridgeTransportWindowLike,
 } from '../../../src/messaging/post-message-transport';
-import type { BridgeEnvelope, BridgeReadyEnvelope } from '../../../src/types';
+import type {
+  BridgeEnvelope,
+  BridgeEventEnvelope,
+  BridgePlugin,
+  BridgeReadyEnvelope,
+  DiagnosticEvent,
+  IframeBridgeConfig,
+  IframeBridgeResizeConfig,
+} from '../../../src/types';
 
 const parentOrigin = 'https://host.example';
 const childOrigin = 'https://child.example';
@@ -141,6 +150,153 @@ describe('createIframeBridge', () => {
     expect(harness.queue.flushCalls).toBe(1);
     expect(harness.queue.closeErrors).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  test('applies resize plugin events after ready when the resize plugin is registered', () => {
+    vi.useFakeTimers();
+    const harness = createHarness({ resize: {} });
+
+    harness.transport.event('iframe-bridge:resize', { height: 480, width: 720 });
+
+    expect(harness.iframe.style.width).toBe('');
+    expect(harness.iframe.style.height).toBe('');
+
+    harness.transport.ready();
+    harness.transport.event('iframe-bridge:resize', { height: 480, width: 720 });
+
+    expect(harness.iframe.style.width).toBe('720px');
+    expect(harness.iframe.style.height).toBe('480px');
+  });
+
+  test('invokes resize onResize after ready with requested and applied dimensions', () => {
+    vi.useFakeTimers();
+    const onResize = vi.fn();
+    const harness = createHarness({
+      resize: {
+        maxHeightPx: 900,
+        minWidthPx: 320,
+        offsetHeightPx: 50,
+        offsetWidthPx: -100,
+        onResize,
+      },
+    });
+
+    harness.transport.event('iframe-bridge:resize', { height: 880, width: 350 });
+
+    expect(onResize).not.toHaveBeenCalled();
+
+    harness.transport.ready();
+    harness.transport.event('iframe-bridge:resize', { height: 880, width: 350 });
+
+    expect(harness.iframe.style.width).toBe('320px');
+    expect(harness.iframe.style.height).toBe('900px');
+    expect(onResize).toHaveBeenCalledWith({
+      height: 900,
+      requestedHeight: 880,
+      requestedWidth: 350,
+      width: 320,
+    });
+  });
+
+  test('forwards unclaimed resize events to user listeners when no resize plugin is registered', () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const handler = vi.fn();
+
+    harness.bridge.on('iframe-bridge:resize', handler);
+    harness.transport.ready();
+    harness.transport.event('iframe-bridge:resize', { height: 480, width: 720 });
+
+    expect(harness.iframe.style.width).toBe('');
+    expect(harness.iframe.style.height).toBe('');
+    expect(handler).toHaveBeenCalledWith({ height: 480, width: 720 });
+  });
+
+  test('warns and does not dispatch invalid resize payloads through the resize plugin', () => {
+    vi.useFakeTimers();
+    const warnings: DiagnosticEvent[] = [];
+    const harness = createHarness({
+      diagnostics: {
+        logger: {
+          warn(event) {
+            warnings.push(event);
+          },
+        },
+      },
+      resize: {},
+    });
+    const handler = vi.fn();
+
+    harness.bridge.on('iframe-bridge:resize', handler);
+    harness.transport.ready();
+    harness.transport.event('iframe-bridge:resize', { width: '720' });
+
+    expect(harness.iframe.style.width).toBe('');
+    expect(harness.iframe.style.height).toBe('');
+    expect(handler).not.toHaveBeenCalled();
+    expect(warnings).toEqual([
+      expect.objectContaining({
+        code: 'RESIZE_INVALID_PAYLOAD',
+        sessionId,
+      }),
+    ]);
+  });
+
+  test('warns when resize onResize throws without interrupting dispatch', () => {
+    vi.useFakeTimers();
+    const warnings: DiagnosticEvent[] = [];
+    const harness = createHarness({
+      diagnostics: {
+        logger: {
+          warn(event) {
+            warnings.push(event);
+          },
+        },
+      },
+      resize: {
+        onResize() {
+          throw new Error('consumer callback failed');
+        },
+      },
+    });
+
+    harness.transport.ready();
+    expect(() => {
+      harness.transport.event('iframe-bridge:resize', { height: 480, width: 720 });
+    }).not.toThrow();
+
+    expect(harness.iframe.style.width).toBe('720px');
+    expect(harness.iframe.style.height).toBe('480px');
+    expect(warnings).toEqual([
+      expect.objectContaining({
+        code: 'RESIZE_CALLBACK_ERROR',
+        sessionId,
+      }),
+    ]);
+  });
+
+  test('does not dispatch handled resize events to user listeners', () => {
+    vi.useFakeTimers();
+    const harness = createHarness({ resize: {} });
+    const handler = vi.fn();
+
+    harness.bridge.on('iframe-bridge:resize', handler);
+    harness.transport.ready();
+    harness.transport.event('iframe-bridge:resize', { height: 480, width: 720 });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  test('forwards unclaimed events to user listeners when plugins do not claim them', () => {
+    vi.useFakeTimers();
+    const harness = createHarness({ resize: {} });
+    const handler = vi.fn();
+
+    harness.bridge.on('app:ready', handler);
+    harness.transport.ready();
+    harness.transport.event('app:ready', { value: 1 });
+
+    expect(handler).toHaveBeenCalledWith({ value: 1 });
   });
 
   test('resolves whenReady after accepting the first valid ready message', async () => {
@@ -321,7 +477,10 @@ describe('createIframeBridge', () => {
 
 type CreateHarnessOptions = {
   readonly contentWindowBeforeAppend?: boolean;
+  readonly diagnostics?: IframeBridgeConfig['diagnostics'];
   readonly handshakeTimeoutMs?: number;
+  readonly plugins?: readonly BridgePlugin[];
+  readonly resize?: IframeBridgeResizeConfig;
 };
 
 function createHarness(options: CreateHarnessOptions = {}) {
@@ -335,6 +494,8 @@ function createHarness(options: CreateHarnessOptions = {}) {
   const parentWindow = new FakeParentWindow(events);
   const queue = new FakeQueue();
   let transport: FakeTransport | undefined;
+  const plugins: readonly BridgePlugin[] =
+    options.plugins ?? (options.resize === undefined ? [] : [resizePlugin(options.resize)]);
 
   const bridge = createIframeBridge(
     {
@@ -347,6 +508,7 @@ function createHarness(options: CreateHarnessOptions = {}) {
         },
       },
       container: container as unknown as Element,
+      ...(options.diagnostics === undefined ? {} : { diagnostics: options.diagnostics }),
       iframeAttributes: {
         title: 'Embedded child',
       },
@@ -361,6 +523,7 @@ function createHarness(options: CreateHarnessOptions = {}) {
         return transport;
       },
     },
+    { plugins },
   );
 
   if (transport === undefined) {
@@ -454,6 +617,10 @@ class FakeIframe {
   parentNode: FakeContainer | null = null;
   referrerPolicy = '';
   src = '';
+  style = {
+    height: '',
+    width: '',
+  };
   title = '';
 
   constructor(private readonly options: FakeIframeOptions) {}
@@ -600,6 +767,10 @@ class FakeTransport implements BridgeLifecycleTransport {
     this.options.onReady?.(readyEnvelope(overrides));
   }
 
+  event(name: string, payload?: unknown): void {
+    this.options.onEvent?.(eventEnvelope(name, payload));
+  }
+
   start(): void {
     this.startCalls += 1;
     this.events.push('transport:start');
@@ -669,6 +840,17 @@ function readyEnvelope(overrides: Partial<BridgeReadyEnvelope> = {}): BridgeRead
     type: 'bridge:ready',
     version: 1,
     ...overrides,
+  };
+}
+
+function eventEnvelope(name: string, payload: unknown): BridgeEventEnvelope {
+  return {
+    name,
+    payload,
+    protocol: 'iframe-bridge',
+    sessionId,
+    type: 'bridge:event',
+    version: 1,
   };
 }
 

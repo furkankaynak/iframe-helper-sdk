@@ -49,6 +49,39 @@ export type IframeBridgeTimeoutConfig = {
   operationTimeoutMs?: number;
 };
 
+export type IframeBridgeResizeAxis = 'width' | 'height' | 'both';
+
+export type IframeBridgeResizeEvent = {
+  readonly height?: number;
+  readonly requestedHeight?: number;
+  readonly requestedWidth?: number;
+  readonly width?: number;
+};
+
+export type IframeBridgeResizeCallback = (event: IframeBridgeResizeEvent) => void;
+
+export type IframeBridgeResizeConfig = {
+  enabled?: boolean;
+  axis?: IframeBridgeResizeAxis;
+  minWidthPx?: number;
+  maxWidthPx?: number;
+  minHeightPx?: number;
+  maxHeightPx?: number;
+  offsetWidthPx?: number;
+  offsetHeightPx?: number;
+  onResize?: IframeBridgeResizeCallback;
+};
+
+export type IframeBridgeResizePayload =
+  | {
+      width: number;
+      height?: number;
+    }
+  | {
+      width?: number;
+      height: number;
+    };
+
 export type DiagnosticLevel = 'debug' | 'warn' | 'error';
 
 export type DiagnosticEvent = {
@@ -84,6 +117,23 @@ export type IframeBridgeConfig = {
   securityProfile?: IframeBridgeSecurityProfile;
   timeouts?: IframeBridgeTimeoutConfig;
   diagnostics?: IframeBridgeDiagnosticsConfig;
+};
+
+export type BridgePluginContext = {
+  readonly iframe: HTMLIFrameElement;
+  readonly sessionId: string;
+  readonly warn: (event: DiagnosticEvent) => void;
+};
+
+export type BridgePluginHandle = {
+  readonly events: readonly string[];
+  onEvent(envelope: BridgeEventEnvelope, ctx: BridgePluginContext): void;
+};
+
+export type BridgePlugin = () => BridgePluginHandle;
+
+export type IframeBridgeOptions = {
+  readonly plugins?: readonly BridgePlugin[];
 };
 
 export type OperationOptions = {

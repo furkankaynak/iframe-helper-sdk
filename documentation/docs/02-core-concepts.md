@@ -283,20 +283,21 @@ await bridgeB.whenReady();
 
 ## Summary: What the SDK Does vs. What You Do
 
-| The SDK handles                                                                     | You handle                                                               |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Creating and mounting the iframe element                                            | Providing a container element and iframe URL                             |
-| Generating session ids and appending bootstrap URL params                           | Customizing bootstrap param names/locations if needed                    |
-| Installing and managing `message` event listeners                                   | Nothing — the listener is fully managed                                  |
-| Validating `event.origin`, `event.source`, protocol, version, session, and envelope | Configuring exact `targetOrigin` / `allowedOrigin`                       |
-| Queueing pre-ready operations and flushing on handshake                             | Deciding whether to enable or disable the queue                          |
-| Enforcing per-operation timeouts and cleaning up timers                             | Configuring timeout values appropriate for your integration              |
-| Rejecting queued/pending operations on handshake failure or destroy                 | Calling `destroy()` when the integration should end                      |
-| Surfaceing structured `IframeBridgeError` codes for branching                       | Catching errors and implementing recovery logic                          |
-| Emitting sanitized diagnostic events                                                | Connecting diagnostic hooks to your logging                              |
-| **Nothing** related to authentication or authorization                              | Authenticating users, authorizing actions, applying server-side security |
-| **Nothing** related to CSP or server-side headers                                   | Setting `frame-src` on the parent, `frame-ancestors` on the iframe       |
-| **Nothing** related to iframe-side message handling                                 | Implementing the raw wire protocol on the iframe side                    |
+| The SDK handles                                                                     | You handle                                                                |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Creating and mounting the iframe element                                            | Providing a container element and iframe URL                              |
+| Generating session ids and appending bootstrap URL params                           | Customizing bootstrap param names/locations if needed                     |
+| Installing and managing `message` event listeners                                   | Nothing — the listener is fully managed                                   |
+| Validating `event.origin`, `event.source`, protocol, version, session, and envelope | Configuring exact `targetOrigin` / `allowedOrigin`                        |
+| Queueing pre-ready operations and flushing on handshake                             | Deciding whether to enable or disable the queue                           |
+| Enforcing per-operation timeouts and cleaning up timers                             | Configuring timeout values appropriate for your integration               |
+| Rejecting queued/pending operations on handshake failure or destroy                 | Calling `destroy()` when the integration should end                       |
+| Surfaceing structured `IframeBridgeError` codes for branching                       | Catching errors and implementing recovery logic                           |
+| Emitting sanitized diagnostic events                                                | Connecting diagnostic hooks to your logging                               |
+| **Nothing** related to authentication or authorization                              | Authenticating users, authorizing actions, applying server-side security  |
+| **Nothing** related to CSP or server-side headers                                   | Setting `frame-src` on the parent, `frame-ancestors` on the iframe        |
+| **Nothing** related to iframe-side message handling                                 | Implementing the raw wire protocol on the iframe side                     |
+| **Nothing** related to focus traps, keyboard navigation, or ARIA state              | Implementing accessible focus management in modals, drawers, and overlays |
 
 ---
 
