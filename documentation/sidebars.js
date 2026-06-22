@@ -22,6 +22,11 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Plugins',
+      items: ['plugins/plugins', 'plugins/resize'],
+    },
+    {
+      type: 'category',
       label: 'Reference',
       collapsible: false,
       items: ['api-reference', 'error-codes'],

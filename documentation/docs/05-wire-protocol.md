@@ -260,6 +260,8 @@ The parent validates the normal envelope first: origin, source window, session i
 
 The iframe sends content dimensions only. Parent-side axis filtering, offsets, min/max bounds, and `resizePlugin({ onResize })` run inside the SDK after envelope validation.
 
+Full setup and security guidance: [Resize Plugin](./plugins/resize).
+
 ### `bridge:request`
 
 **Direction:** Parent → Iframe (MVP)  
@@ -442,44 +444,7 @@ This is optional — the parent will queue pre-ready operations regardless.
 
 ### 8. Send resize events when the parent registered the resize plugin (optional)
 
-If the parent has registered `resizePlugin()`, send `iframe-bridge:resize` after `bridge:connected` and whenever your content dimensions change.
-
-```js
-let connected = false;
-let lastResize = '';
-
-function sendResize() {
-  if (!connected) return;
-
-  const width = Math.ceil(
-    Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
-  );
-  const height = Math.ceil(
-    Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
-  );
-  const nextResize = `${width}x${height}`;
-
-  if (nextResize === lastResize) return;
-  lastResize = nextResize;
-
-  postToParent({
-    type: 'bridge:event',
-    name: 'iframe-bridge:resize',
-    payload: { width, height },
-  });
-}
-
-const resizeObserver = new ResizeObserver(sendResize);
-
-resizeObserver.observe(document.documentElement);
-
-// In your message handler:
-if (envelope.type === 'bridge:connected') {
-  connected = true;
-  // Send an initial size immediately, then let ResizeObserver handle changes.
-  sendResize();
-}
-```
+If the parent has registered `resizePlugin()`, send `iframe-bridge:resize` after `bridge:connected` and whenever your content dimensions change. See [Resize Plugin](./plugins/resize#iframe-example-with-resizeobserver) for a `ResizeObserver` example.
 
 ---
 

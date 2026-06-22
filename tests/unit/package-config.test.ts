@@ -67,6 +67,7 @@ describe('production package configuration', () => {
     expect(requireExport.types).toBe('./dist/types/index.d.cts');
     expect(requireExport.default).toBe('./dist/index.cjs');
     expect(rootExport.default).toBe('./dist/index.js');
+    expect(scripts.test).toBe('npm run build:prod && vitest run');
     expect(scripts.build).toBe('npm run build:prod');
     expect(scripts['build:prod']).toContain('node scripts/prepare-cjs-types.mjs');
   });
@@ -157,6 +158,18 @@ describe('production package configuration', () => {
     expect(publishWorkflow).toContain('package-manager-cache: false');
     expect(publishWorkflow).toContain('npm publish --access public');
     expect(publishWorkflow).not.toContain('--provenance');
+  });
+
+  test('configures Docusaurus GA4 tracking through the gtag preset option', async () => {
+    const docusaurusConfig = await readFile(
+      join(projectRoot, 'documentation', 'docusaurus.config.js'),
+      'utf8',
+    );
+
+    expect(docusaurusConfig).toContain('gtag:');
+    expect(docusaurusConfig).toContain("trackingID: 'G-W874H14NHJ'");
+    expect(docusaurusConfig).toContain('anonymizeIP: true');
+    expect(docusaurusConfig).not.toContain('googleAnalytics:');
   });
 });
 

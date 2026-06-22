@@ -207,40 +207,12 @@ bridge.iframe.style.height = '600px';
 For child-driven cross-domain sizing, register `resizePlugin()` in the parent options and have the iframe send the reserved `iframe-bridge:resize` event:
 
 ```ts
-import { createIframeBridge } from 'iframe-helper-sdk';
 import { resizePlugin } from 'iframe-helper-sdk/resize';
 
-const bridge = createIframeBridge(
-  {
-    container: '#partner-frame',
-    src: 'https://partner.example/app',
-  },
-  {
-    plugins: [
-      resizePlugin({
-        minHeightPx: 240,
-        maxHeightPx: 900,
-        offsetHeightPx: 16,
-        onResize({ width, height }) {
-          console.log('applied iframe size', width, height);
-        },
-      }),
-    ],
-  },
-);
+plugins: [resizePlugin({ axis: 'height', maxHeightPx: 900 })];
 ```
 
-```js
-postToParent({
-  type: 'bridge:event',
-  name: 'iframe-bridge:resize',
-  payload: { width: 800, height: 640 },
-});
-```
-
-The parent still validates the message through the normal bridge chain before applying dimensions. Use min/max bounds so the iframe cannot force unreasonable layout changes. Use `offsetWidthPx` and `offsetHeightPx` when the parent needs fixed extra pixels around iframe content, and use `onResize` to observe final applied dimensions.
-
-The iframe should send one resize immediately after `bridge:connected`, then send again whenever content dimensions change.
+The parent still validates the message through the normal bridge chain before applying dimensions. Use max bounds so the iframe cannot force unreasonable layout changes. Full setup: [Resize Plugin](./plugins/resize).
 
 ---
 
