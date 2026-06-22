@@ -80,7 +80,11 @@ describe('production package configuration', () => {
     const entry = getRecord(lib.entry, 'vite library entry map');
 
     expect(lib.formats).toEqual(['es', 'cjs']);
-    expect(Object.keys(entry).sort()).toEqual(['index', 'resize']);
+    expect(Object.keys(entry).sort()).toEqual(['child', 'child/resize', 'index', 'resize']);
+    expect(fileName('es', 'child')).toBe('child.js');
+    expect(fileName('cjs', 'child')).toBe('child.cjs');
+    expect(fileName('es', 'child/resize')).toBe('child/resize.js');
+    expect(fileName('cjs', 'child/resize')).toBe('child/resize.cjs');
     expect(fileName('es', 'index')).toBe('index.js');
     expect(fileName('cjs', 'index')).toBe('index.cjs');
     expect(fileName('es', 'resize')).toBe('resize.js');
@@ -109,6 +113,24 @@ describe('production package configuration', () => {
     expect(resizeExport.default).toBe('./dist/resize.js');
   });
 
+  test('exposes child subpath exports with ESM, CJS, and declaration paths', async () => {
+    const packageJson = await readJson('package.json');
+    const exports = getRecord(packageJson.exports, 'exports');
+
+    expectSubpathExport(exports, './child', {
+      cjs: './dist/child.cjs',
+      cjsTypes: './dist/types/child.d.cts',
+      esm: './dist/child.js',
+      esmTypes: './dist/types/child.d.ts',
+    });
+    expectSubpathExport(exports, './child/resize', {
+      cjs: './dist/child/resize.cjs',
+      cjsTypes: './dist/types/child/resize.d.cts',
+      esm: './dist/child/resize.js',
+      esmTypes: './dist/types/child/resize.d.ts',
+    });
+  });
+
   test('prepares CJS type aliases for all library entry points', async () => {
     const prepareCjsTypes = await readFile(
       join(projectRoot, 'scripts', 'prepare-cjs-types.mjs'),
@@ -117,6 +139,8 @@ describe('production package configuration', () => {
 
     expect(prepareCjsTypes).toContain('index');
     expect(prepareCjsTypes).toContain('resize');
+    expect(prepareCjsTypes).toContain('child');
+    expect(prepareCjsTypes).toContain('child/resize');
   });
 
   test('emits TypeScript declarations into a dedicated dist/types folder', async () => {
@@ -198,6 +222,30 @@ function getFileNameFactory(value: unknown): (format: string, entryName: string)
   }
 
   return value as (format: string, entryName: string) => string;
+}
+
+function expectSubpathExport(
+  exports: Record<string, unknown>,
+  subpath: string,
+  expected: {
+    readonly cjs: string;
+    readonly cjsTypes: string;
+    readonly esm: string;
+    readonly esmTypes: string;
+  },
+): void {
+  const subpathExport = getRecord(exports[subpath], `exports["${subpath}"]`);
+  const importExport = getRecord(subpathExport.import, `exports["${subpath}"].import`);
+  const requireExport = getRecord(subpathExport.require, `exports["${subpath}"].require`);
+
+  expect(Object.keys(subpathExport).sort()).toEqual(['default', 'import', 'require']);
+  expect(Object.keys(importExport).sort()).toEqual(['default', 'types']);
+  expect(importExport.types).toBe(expected.esmTypes);
+  expect(importExport.default).toBe(expected.esm);
+  expect(Object.keys(requireExport).sort()).toEqual(['default', 'types']);
+  expect(requireExport.types).toBe(expected.cjsTypes);
+  expect(requireExport.default).toBe(expected.cjs);
+  expect(subpathExport.default).toBe(expected.esm);
 }
 
 async function resolveViteConfig(config: UserConfigExport): Promise<UserConfig> {

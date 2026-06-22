@@ -102,9 +102,10 @@ describe('BridgeTransport', () => {
     expect(callbacks.onInvalidMessage).not.toHaveBeenCalled();
   });
 
-  test('routes ready, event, request, and response envelopes for the configured session', () => {
+  test('routes ready, connected, event, request, and response envelopes for the configured session', () => {
     const { callbacks, parentWindow, sourceWindow, transport } = createTransport();
     const ready = readyEnvelope();
+    const connected = connectedEnvelope();
     const event = eventEnvelope();
     const request = requestEnvelope();
     const response = responseEnvelope();
@@ -112,11 +113,13 @@ describe('BridgeTransport', () => {
     transport.start();
 
     parentWindow.dispatch(messageEvent(ready, sourceWindow));
+    parentWindow.dispatch(messageEvent(connected, sourceWindow));
     parentWindow.dispatch(messageEvent(event, sourceWindow));
     parentWindow.dispatch(messageEvent(request, sourceWindow));
     parentWindow.dispatch(messageEvent(response, sourceWindow));
 
     expect(callbacks.onReady).toHaveBeenCalledWith(ready);
+    expect(callbacks.onConnected).toHaveBeenCalledWith(connected);
     expect(callbacks.onEvent).toHaveBeenCalledWith(event);
     expect(callbacks.onRequest).toHaveBeenCalledWith(request);
     expect(callbacks.onResponse).toHaveBeenCalledWith(response);
@@ -306,6 +309,7 @@ function createTransport(options: CreateTransportOptions = {}) {
   const transport = new BridgeTransport({
     expectedOrigin: options.expectedOrigin ?? expectedOrigin,
     onEvent: callbacks.onEvent,
+    onConnected: callbacks.onConnected,
     onInvalidMessage: callbacks.onInvalidMessage,
     onReady: callbacks.onReady,
     onRequest: callbacks.onRequest,
@@ -323,6 +327,7 @@ function createTransport(options: CreateTransportOptions = {}) {
 function createCallbacks() {
   return {
     onEvent: vi.fn<(envelope: BridgeEventEnvelope) => void>(),
+    onConnected: vi.fn<(envelope: BridgeConnectedEnvelope) => void>(),
     onInvalidMessage: vi.fn<(message: BridgeTransportInvalidMessage) => void>(),
     onReady: vi.fn<(envelope: BridgeReadyEnvelope) => void>(),
     onRequest: vi.fn<(envelope: BridgeRequestEnvelope) => void>(),

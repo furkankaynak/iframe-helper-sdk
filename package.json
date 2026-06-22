@@ -59,6 +59,28 @@
       },
       "default": "./dist/index.js"
     },
+    "./child": {
+      "import": {
+        "types": "./dist/types/child.d.ts",
+        "default": "./dist/child.js"
+      },
+      "require": {
+        "types": "./dist/types/child.d.cts",
+        "default": "./dist/child.cjs"
+      },
+      "default": "./dist/child.js"
+    },
+    "./child/resize": {
+      "import": {
+        "types": "./dist/types/child/resize.d.ts",
+        "default": "./dist/child/resize.js"
+      },
+      "require": {
+        "types": "./dist/types/child/resize.d.cts",
+        "default": "./dist/child/resize.cjs"
+      },
+      "default": "./dist/child/resize.js"
+    },
     "./resize": {
       "import": {
         "types": "./dist/types/resize.d.ts",

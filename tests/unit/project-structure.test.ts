@@ -5,6 +5,8 @@ import { describe, expect, test } from 'vitest';
 
 const projectRoot = process.cwd();
 const allowedSrcRootEntries = new Set([
+  'child',
+  'child.ts',
   'diagnostics',
   'host',
   'index.ts',
@@ -35,6 +37,7 @@ describe('project folder structure', () => {
 
     expect(srcTestFiles).toEqual([]);
     expect(unitTestDomains.sort()).toEqual([
+      'child',
       'diagnostics',
       'host',
       'messaging',

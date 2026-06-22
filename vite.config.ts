@@ -9,6 +9,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
+        child: resolve(rootDir, 'src/child.ts'),
+        'child/resize': resolve(rootDir, 'src/child/resize.ts'),
         index: resolve(rootDir, 'src/index.ts'),
         resize: resolve(rootDir, 'src/resize.ts'),
       },

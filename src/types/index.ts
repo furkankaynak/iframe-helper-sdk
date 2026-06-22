@@ -169,6 +169,87 @@ export type IframeBridge = {
   destroy(): void;
 };
 
+export type ChildLifecycleState =
+  | 'created'
+  | 'connecting'
+  | 'connected'
+  | 'connection_failed'
+  | 'destroyed';
+
+export type IframeChildBootstrapSessionConfig = {
+  paramName?: string;
+  location?: BootstrapParamLocation;
+};
+
+export type IframeChildBootstrapParentOriginConfig = {
+  paramName?: string;
+  location?: BootstrapParamLocation;
+};
+
+export type IframeChildBootstrapConfig = {
+  session?: IframeChildBootstrapSessionConfig;
+  parentOrigin?: IframeChildBootstrapParentOriginConfig;
+  connectionTimeoutMs?: number;
+};
+
+export type IframeChildBridgeConfig = {
+  allowedParentOrigins?: readonly string[] | null;
+  bootstrap?: IframeChildBootstrapConfig;
+  diagnostics?: IframeBridgeDiagnosticsConfig;
+};
+
+export type IframeChildOperationOptions = {
+  signal?: AbortSignal;
+};
+
+export type IframeChildBridgeEventHandler<TPayload = unknown> = (payload: TPayload) => void;
+
+export type IframeChildBridgeRequestHandler<TPayload = unknown, TResponse = unknown> = (
+  payload: TPayload,
+) => TResponse | Promise<TResponse>;
+
+export type IframeChildBridge = {
+  readonly parentOrigin: string;
+  readonly sessionId: string;
+  readonly state: ChildLifecycleState;
+  sendEvent<TPayload = unknown>(
+    name: string,
+    payload: TPayload,
+    options?: IframeChildOperationOptions,
+  ): Promise<void>;
+  on<TPayload = unknown>(
+    name: string,
+    handler: IframeChildBridgeEventHandler<TPayload>,
+  ): () => void;
+  handleRequest<TPayload = unknown, TResponse = unknown>(
+    name: string,
+    handler: IframeChildBridgeRequestHandler<TPayload, TResponse>,
+  ): () => void;
+  whenConnected(): Promise<void>;
+  destroy(): void;
+};
+
+export type IframeChildBridgePluginSetupContext = {
+  readonly bridge: IframeChildBridge;
+  readonly parentOrigin: string;
+  readonly sessionId: string;
+  readonly warn: (event: DiagnosticEvent) => void;
+};
+
+export type IframeChildBridgePluginHandle = {
+  onConnected?(): void;
+  onEvent?(envelope: BridgeEventEnvelope, bridge: IframeChildBridge): void;
+  destroy?(): void;
+};
+
+export type IframeChildBridgePlugin = (
+  ctx: IframeChildBridgePluginSetupContext,
+) => IframeChildBridgePluginHandle | undefined;
+
+export type IframeChildBridgeOptions = {
+  readonly plugins?: readonly IframeChildBridgePlugin[];
+};
+
 export type IframeBridgeRequestContract = {
   readonly payload: unknown;
   readonly response: unknown;

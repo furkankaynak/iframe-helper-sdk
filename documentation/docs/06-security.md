@@ -136,6 +136,8 @@ For `resizePlugin`, treat dimensions as child-controlled layout input. Set `maxW
 
 Content Security Policy prevents unauthorized iframe embedding at the browser level. Use it alongside the SDK's origin validation — CSP and the bridge check different things, and both matter.
 
+The child iframe SDK (`iframe-helper-sdk/child`) adds child-side parent-origin validation for iframe apps that install the package. Its `allowedParentOrigins?: readonly string[] | null` option complements, but does not replace, the iframe app's CSP `frame-ancestors` response header.
+
 ### Parent-side: restrict what you embed
 
 Add a `frame-src` (or `child-src`) directive to your parent page's CSP header. This controls which origins the browser is allowed to load into iframes on your page.
@@ -191,6 +193,33 @@ Content-Security-Policy: frame-ancestors 'self'
 CSP controls which pages can load/embed the iframe. The SDK's origin, source, and session validation controls which messages are accepted over `postMessage`. Both layers are necessary — one doesn't replace the other. See [Origin Validation](#origin-validation) for what the SDK checks.
 
 :::
+
+### Child SDK: restrict accepted parent origins
+
+When your iframe app uses `iframe-helper-sdk/child`, configure `allowedParentOrigins` if the valid parent origins are known:
+
+```ts
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+
+createIframeChildBridge({
+  allowedParentOrigins: ['https://host.example'],
+});
+```
+
+Exact semantics:
+
+| Value           | Behavior                                                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Omitted         | Accepts the bootstrap parent origin. Relies on server-side/browser embedding controls such as CSP `frame-ancestors`. |
+| `null`          | Same as omitted: accepts the bootstrap parent origin.                                                                |
+| Non-empty array | Requires exact origin match against the bootstrap parent origin.                                                     |
+| Empty array     | Invalid configuration.                                                                                               |
+
+The child SDK does not use wildcard target origins in normal operation. After it accepts the parent origin, it posts `bridge:ready`, child events, request responses, and plugin messages back to that exact origin.
+
+The session id remains correlation metadata only. It is not auth, a token, a secret, or proof that the parent is trusted.
+
+Full child-side guidance: [Child Security](/child/security).
 
 ---
 

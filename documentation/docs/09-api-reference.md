@@ -19,6 +19,7 @@ If you're looking for conceptual explanations, see [Core Concepts](./core-concep
 | ---------------------------- | -------- | ----------------------------------------------------- |
 | `createIframeBridge`         | Function | Create a bridge instance for a cross-domain iframe    |
 | `createTypedIframeBridge`    | Function | Create a contract-typed bridge instance               |
+| `createIframeChildBridge`    | Function | Create a child-side bridge inside an iframe app       |
 | `createDiagnosticRecorder`   | Function | Record diagnostic events for debugging                |
 | `IframeBridgeError`          | Class    | Typed SDK error with `code`, `message`, and `details` |
 | `BRIDGE_MESSAGE_TYPES`       | Constant | Tuple of all bridge message type strings              |
@@ -27,11 +28,12 @@ If you're looking for conceptual explanations, see [Core Concepts](./core-concep
 | `isBridgeEnvelope`           | Function | Type guard: checks if a value is a bridge envelope    |
 | `validateBridgeEnvelope`     | Function | Validates and returns a typed bridge envelope         |
 | `normalizeBridgeRemoteError` | Function | Normalizes a remote error into a standard shape       |
+| `childResizePlugin`          | Function | Optional child-side resize plugin                     |
 
 <details>
 <summary>All exported types</summary>
 
-`IframeBridge`, `IframeBridgeConfig`, `IframeBridgeOptions`, `IframeBridgeContract`, `IframeBridgeErrorCode`, `IframeBridgeErrorOptions`, `IframeBridgeEventHandler`, `IframeBridgeIframeAttributes`, `IframeBridgeBootstrapConfig`, `IframeBridgeBootstrapSessionConfig`, `IframeBridgeBootstrapParentOriginConfig`, `IframeBridgeQueueConfig`, `IframeBridgeResizeAxis`, `IframeBridgeResizeCallback`, `IframeBridgeResizeConfig`, `IframeBridgeResizeEvent`, `IframeBridgeResizePayload`, `IframeBridgeTimeoutConfig`, `IframeBridgeDiagnosticsConfig`, `IframeBridgeLogger`, `IframeBridgeSecurityProfile`, `IframeBridgeRequestContract`, `TypedIframeBridge`, `OperationOptions`, `LifecycleState`, `DiagnosticEvent`, `DiagnosticLevel`, `DiagnosticRecorder`, `DiagnosticRecorderEntry`, `DiagnosticRecorderOptions`, `BridgePlugin`, `BridgePluginContext`, `BridgePluginHandle`, `BridgePluginSetupContext`, `BridgeEnvelope`, `BridgeReadyEnvelope`, `BridgeConnectedEnvelope`, `BridgeEventEnvelope`, `BridgeRequestEnvelope`, `BridgeResponseEnvelope`, `BridgeEnvelopeBase`, `BridgeEnvelopeError`, `BridgeMessageType`, `BridgeProtocolName`, `BridgeProtocolVersion`, `BootstrapParamLocation`
+`IframeBridge`, `IframeBridgeConfig`, `IframeBridgeOptions`, `IframeBridgeContract`, `IframeBridgeErrorCode`, `IframeBridgeErrorOptions`, `IframeBridgeEventHandler`, `IframeBridgeIframeAttributes`, `IframeBridgeBootstrapConfig`, `IframeBridgeBootstrapSessionConfig`, `IframeBridgeBootstrapParentOriginConfig`, `IframeBridgeQueueConfig`, `IframeBridgeResizeAxis`, `IframeBridgeResizeCallback`, `IframeBridgeResizeConfig`, `IframeBridgeResizeEvent`, `IframeBridgeResizePayload`, `IframeBridgeTimeoutConfig`, `IframeBridgeDiagnosticsConfig`, `IframeBridgeLogger`, `IframeBridgeSecurityProfile`, `IframeBridgeRequestContract`, `TypedIframeBridge`, `OperationOptions`, `LifecycleState`, `ChildLifecycleState`, `IframeChildBridge`, `IframeChildBridgeConfig`, `IframeChildBridgeOptions`, `IframeChildBridgeEventHandler`, `IframeChildBridgeRequestHandler`, `IframeChildOperationOptions`, `IframeChildBootstrapConfig`, `IframeChildBootstrapSessionConfig`, `IframeChildBootstrapParentOriginConfig`, `IframeChildBridgePlugin`, `IframeChildBridgePluginSetupContext`, `IframeChildBridgePluginHandle`, `DiagnosticEvent`, `DiagnosticLevel`, `DiagnosticRecorder`, `DiagnosticRecorderEntry`, `DiagnosticRecorderOptions`, `BridgePlugin`, `BridgePluginContext`, `BridgePluginHandle`, `BridgePluginSetupContext`, `BridgeEnvelope`, `BridgeReadyEnvelope`, `BridgeConnectedEnvelope`, `BridgeEventEnvelope`, `BridgeRequestEnvelope`, `BridgeResponseEnvelope`, `BridgeEnvelopeBase`, `BridgeEnvelopeError`, `BridgeMessageType`, `BridgeProtocolName`, `BridgeProtocolVersion`, `BootstrapParamLocation`
 
 </details>
 
@@ -39,7 +41,7 @@ If you're looking for conceptual explanations, see [Core Concepts](./core-concep
 
 ## Importing
 
-Import the core bridge from the package root. Optional plugins use public subpath exports, such as `iframe-helper-sdk/resize`. Do not import from internal paths — they are not part of the public API.
+Import the parent bridge from the package root. The child iframe SDK and optional plugins use public subpath exports, such as `iframe-helper-sdk/child`, `iframe-helper-sdk/resize`, and `iframe-helper-sdk/child/resize`. Do not import from internal paths — they are not part of the public API.
 
 ```ts
 import {
@@ -57,8 +59,12 @@ import {
 
 import type {
   BridgeEnvelope,
+  ChildLifecycleState,
   DiagnosticEvent,
   DiagnosticRecorder,
+  IframeChildBridge,
+  IframeChildBridgeConfig,
+  IframeChildBridgeOptions,
   IframeBridge,
   IframeBridgeConfig,
   IframeBridgeContract,
@@ -71,7 +77,9 @@ import type {
   TypedIframeBridge,
 } from 'iframe-helper-sdk';
 
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
 import { resizePlugin } from 'iframe-helper-sdk/resize';
+import { childResizePlugin } from 'iframe-helper-sdk/child/resize';
 ```
 
 ---
@@ -158,7 +166,46 @@ const user = await bridge.request('user:get', { id: '123' });
 
 ---
 
-## Bridge Instance API
+### `createIframeChildBridge(config?, options?)`
+
+```ts
+function createIframeChildBridge(
+  config?: IframeChildBridgeConfig,
+  options?: IframeChildBridgeOptions,
+): IframeChildBridge;
+```
+
+Creates a child-side bridge inside the iframe application. The child bridge reads the bootstrap session id and parent origin from the iframe URL, validates the parent origin, sends `bridge:ready`, waits for `bridge:connected`, and then routes events and parent requests.
+
+```ts
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+
+const bridge = createIframeChildBridge({
+  allowedParentOrigins: ['https://host.example'],
+});
+
+await bridge.whenConnected();
+await bridge.sendEvent('cart:changed', { itemCount: 3 });
+bridge.on('theme:changed', (payload) => {});
+bridge.handleRequest('user:get', async (payload) => ({ name: 'Ada' }));
+bridge.destroy();
+```
+
+**Parameter:** `config?: IframeChildBridgeConfig` — child runtime configuration. `allowedParentOrigins?: readonly string[] | null` is omitted or `null` by default, which accepts the bootstrap parent origin. Non-empty arrays require exact origin match. Empty arrays are invalid.
+
+**Parameter:** `options?: IframeChildBridgeOptions` — optional child plugins, such as `childResizePlugin()` from `iframe-helper-sdk/child/resize`.
+
+**Returns:** `IframeChildBridge` — the child-side bridge instance.
+
+:::note
+
+The child bridge does not expose `request()`. Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
+
+:::
+
+---
+
+## Parent Bridge Instance API
 
 Every bridge instance (`IframeBridge`) exposes the properties and methods below. For the contract-typed variant (`TypedIframeBridge`), see [Type-Safe Bridge](#type-safe-bridge).
 
@@ -536,6 +583,193 @@ bridge.destroy(); // safe
 - Detaches the owned iframe from its container (removes from DOM).
 - Transitions state to `destroyed`.
 - All future bridge method calls reject with `BRIDGE_DESTROYED`.
+
+---
+
+## Child Bridge Instance API
+
+The child bridge (`IframeChildBridge`) runs inside the iframe application. It has a smaller API than the parent bridge and intentionally does not include `request()`.
+
+```ts
+type IframeChildBridge = {
+  readonly parentOrigin: string;
+  readonly sessionId: string;
+  readonly state: ChildLifecycleState;
+  sendEvent<TPayload = unknown>(
+    name: string,
+    payload: TPayload,
+    options?: IframeChildOperationOptions,
+  ): Promise<void>;
+  on<TPayload = unknown>(
+    name: string,
+    handler: IframeChildBridgeEventHandler<TPayload>,
+  ): () => void;
+  handleRequest<TPayload = unknown, TResponse = unknown>(
+    name: string,
+    handler: IframeChildBridgeRequestHandler<TPayload, TResponse>,
+  ): () => void;
+  whenConnected(): Promise<void>;
+  destroy(): void;
+};
+```
+
+### Child lifecycle state
+
+```ts
+type ChildLifecycleState =
+  | 'created'
+  | 'connecting'
+  | 'connected'
+  | 'connection_failed'
+  | 'destroyed';
+```
+
+| State               | Description                                                                       |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `created`           | Child bridge object created; bootstrap validation has not completed.              |
+| `connecting`        | Child bridge is sending `bridge:ready` and waiting for `bridge:connected`.        |
+| `connected`         | Parent acknowledged the handshake. Events and parent request handlers are active. |
+| `connection_failed` | The child could not complete the connection.                                      |
+| `destroyed`         | The child bridge has been destroyed and will not process more messages.           |
+
+---
+
+### `childBridge.parentOrigin`
+
+```ts
+readonly parentOrigin: string
+```
+
+The accepted parent origin. The child SDK uses this exact origin for `postMessage()` calls. No wildcard target origin is used in normal operation.
+
+---
+
+### `childBridge.sessionId`
+
+```ts
+readonly sessionId: string
+```
+
+The bootstrap session id used to correlate protocol messages for this bridge instance. It is correlation metadata, not auth, a token, or a secret.
+
+---
+
+### `childBridge.whenConnected()`
+
+```ts
+whenConnected(): Promise<void>
+```
+
+Resolves when the child bridge receives a valid `bridge:connected` acknowledgement from the accepted parent origin.
+
+```ts
+await bridge.whenConnected();
+await bridge.sendEvent('app:ready', {});
+```
+
+---
+
+### `childBridge.sendEvent(name, payload, options?)`
+
+```ts
+sendEvent<TPayload = unknown>(
+  name: string,
+  payload: TPayload,
+  options?: IframeChildOperationOptions,
+): Promise<void>
+```
+
+Sends a child-to-parent `bridge:event`. The promise resolves after the event is posted; it does not mean the parent processed the event.
+
+```ts
+await bridge.sendEvent('cart:changed', { itemCount: 3 });
+```
+
+---
+
+### `childBridge.on(name, handler)`
+
+```ts
+on<TPayload = unknown>(name: string, handler: (payload: TPayload) => void): () => void
+```
+
+Registers a listener for parent-to-child `bridge:event` messages with the matching `name`. Returns an unsubscribe function.
+
+```ts
+const unsubscribe = bridge.on('theme:changed', (payload) => {
+  console.log(payload);
+});
+```
+
+---
+
+### `childBridge.handleRequest(name, handler)`
+
+```ts
+handleRequest<TPayload = unknown, TResponse = unknown>(
+  name: string,
+  handler: (payload: TPayload) => TResponse | Promise<TResponse>,
+): () => void
+```
+
+Registers a handler for parent `bridge:request` messages and sends a matching `bridge:response` when the handler resolves or rejects.
+
+```ts
+bridge.handleRequest('user:get', async (payload) => ({ name: 'Ada' }));
+```
+
+Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
+
+---
+
+### `childBridge.destroy()`
+
+```ts
+destroy(): void
+```
+
+Destroys the child bridge and removes SDK-owned listeners, handlers, and plugin resources. Treat the destroyed instance as terminal.
+
+---
+
+## Child Config And Plugin Types
+
+```ts
+type IframeChildBridgeConfig = {
+  allowedParentOrigins?: readonly string[] | null;
+  bootstrap?: IframeChildBootstrapConfig;
+  diagnostics?: IframeBridgeDiagnosticsConfig;
+};
+
+type IframeChildBridgeOptions = {
+  readonly plugins?: readonly IframeChildBridgePlugin[];
+};
+
+type IframeChildOperationOptions = {
+  signal?: AbortSignal;
+};
+```
+
+`allowedParentOrigins?: readonly string[] | null` controls parent origin acceptance:
+
+- Omitted or `null` accepts the bootstrap parent origin.
+- Non-empty arrays require exact origin match.
+- Empty arrays are invalid.
+- Omitted allowlist relies on server-side/browser embedding controls such as CSP `frame-ancestors`.
+
+Child plugins are optional and registered through the second argument:
+
+```ts
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+import { childResizePlugin } from 'iframe-helper-sdk/child/resize';
+
+const bridge = createIframeChildBridge(
+  { allowedParentOrigins: ['https://host.example'] },
+  { plugins: [childResizePlugin({ axis: 'both' })] },
+);
+```
+
+Child resize must be imported from `iframe-helper-sdk/child/resize`, not `iframe-helper-sdk/child`.
 
 ---
 

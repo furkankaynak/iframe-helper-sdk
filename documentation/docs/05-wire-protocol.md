@@ -7,9 +7,11 @@ description: The complete postMessage wire protocol specification — envelope s
 
 # Wire Protocol
 
-The iframe bridge SDK communicates through a typed `postMessage` protocol. The SDK handles the parent side automatically. If you're building an **iframe application** (the page loaded inside the iframe), this page tells you exactly what messages to send, what structure they have, and what validation the parent expects.
+The iframe bridge SDK communicates through a typed `postMessage` protocol. The SDK handles the parent side automatically. If you're building an **iframe application** (the page loaded inside the iframe), this page tells you exactly what messages to send, what structure they have, and what validation each side expects.
 
 Your iframe app does **not** need to import this SDK. You implement the protocol directly against `window.parent.postMessage()` and `window.addEventListener('message', …)`. The [playground iframe](https://github.com/anomalyco/iframe-helper-sdk) in the repository shows a complete working example in ~100 lines of vanilla JavaScript.
+
+If your iframe app can install the package, `iframe-helper-sdk/child` provides a convenience runtime for the child side. It implements this same wire protocol for you, including handshake, event routing, and parent request handlers. This page remains the canonical low-level protocol specification for both raw iframe apps and SDK-backed iframe apps. See [Child Iframe SDK](/child) for the child runtime.
 
 ---
 
@@ -102,7 +104,7 @@ The protocol has exactly five message types. The parent SDK exports them as `BRI
 | `bridge:response`  | Iframe → Parent | Response to a parent-initiated request. May carry a payload or an error.    |
 
 :::note
-The parent SDK does not handle iframe-initiated `bridge:request` in the current version. The envelope type is reserved in the protocol for future use, but MVP behavior only supports parent-to-iframe requests.
+The parent SDK does not handle iframe-initiated `bridge:request` in the current version. The child SDK does not expose `request()` and does not initiate `bridge:request`. Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
 :::
 
 ---
@@ -331,6 +333,8 @@ The parent only accepts the **first response** for each `requestId`. If your ifr
 
 This is the minimum implementation your iframe application needs to successfully handshake and communicate with the parent bridge. For a complete working example, see `playground/manual/iframe/index.html` in the repository.
 
+For iframe apps that can install this package, the [Child Iframe SDK](./child) is the higher-level convenience runtime for these same steps. Use this section as the low-level source of truth for protocol envelopes and validation behavior.
+
 ### 1. Read bootstrap parameters
 
 The parent appends two parameters to your iframe URL. Read them from `window.location.search` (default) or `window.location.hash` (if the parent configured `location: 'hash'`).
@@ -537,3 +541,4 @@ If the handshake timer expires before a valid `bridge:ready` arrives, the bridge
 - [ ] Treat session id as correlation metadata, not authentication.
 - [ ] See [Security](./security) for CSP, sandbox, and origin guidance.
 - [ ] See [Debugging & Diagnostics](./debugging) for troubleshooting integration issues.
+- [ ] If you use `iframe-helper-sdk/child`, keep this protocol page as the canonical reference for the messages it sends and receives.

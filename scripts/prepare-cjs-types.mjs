@@ -1,6 +1,6 @@
 import { copyFile } from 'node:fs/promises';
 
-const entryNames = ['index', 'resize'];
+const entryNames = ['child', 'child/resize', 'index', 'resize'];
 
 for (const entryName of entryNames) {
   const esmTypesPath = `dist/types/${entryName}.d.ts`;

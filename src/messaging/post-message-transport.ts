@@ -2,6 +2,7 @@ import { validateBridgeEnvelope } from '../protocol/envelope.js';
 import { IframeBridgeError } from '../shared/errors.js';
 import type {
   BridgeEnvelope,
+  BridgeConnectedEnvelope,
   BridgeEventEnvelope,
   BridgeReadyEnvelope,
   BridgeRequestEnvelope,
@@ -87,6 +88,7 @@ export type BridgeTransportInvalidMessage =
 
 type BridgeTransportCommonOptions = {
   readonly expectedOrigin: string;
+  readonly onConnected?: (envelope: BridgeConnectedEnvelope) => void;
   readonly onEvent?: (envelope: BridgeEventEnvelope) => void;
   readonly onInvalidMessage?: (message: BridgeTransportInvalidMessage) => void;
   readonly onReady?: (envelope: BridgeReadyEnvelope) => void;
@@ -116,6 +118,7 @@ export type BridgeTransportOptions = BridgeTransportCommonOptions &
 
 export class BridgeTransport {
   readonly #expectedOrigin: string;
+  readonly #onConnected: ((envelope: BridgeConnectedEnvelope) => void) | undefined;
   readonly #onEvent: ((envelope: BridgeEventEnvelope) => void) | undefined;
   readonly #onInvalidMessage: ((message: BridgeTransportInvalidMessage) => void) | undefined;
   readonly #onReady: ((envelope: BridgeReadyEnvelope) => void) | undefined;
@@ -130,6 +133,7 @@ export class BridgeTransport {
 
   constructor(options: BridgeTransportOptions) {
     this.#expectedOrigin = options.expectedOrigin;
+    this.#onConnected = options.onConnected;
     this.#onEvent = options.onEvent;
     this.#onInvalidMessage = options.onInvalidMessage;
     this.#onReady = options.onReady;
@@ -241,6 +245,7 @@ export class BridgeTransport {
         this.#onResponse?.(envelope);
         return;
       case 'bridge:connected':
+        this.#onConnected?.(envelope);
         return;
       default:
         assertNever(envelope);

@@ -22,6 +22,17 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Child Iframe SDK',
+      items: [
+        'child/index',
+        'child/security',
+        'child/events-and-requests',
+        'child/plugins',
+        'child/resize',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Plugins',
       items: ['plugins/plugins', 'plugins/resize'],
     },

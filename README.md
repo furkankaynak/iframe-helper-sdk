@@ -8,7 +8,7 @@
 
 **Secure, structured communication between a parent page and cross-domain iframes.**
 
-`iframe-helper-sdk` is a zero-dependency TypeScript SDK for parent-side iframe integrations. It wraps `window.postMessage` with exact origin validation, ready-first handshakes, session routing, bounded queueing, request/response timeouts, fire-and-forget events, opt-in iframe resizing, diagnostics, and optional compile-time typed contracts.
+`iframe-helper-sdk` is a zero-dependency TypeScript SDK for iframe integrations. It wraps `window.postMessage` with exact origin validation, ready-first handshakes, session routing, bounded queueing, request/response timeouts, fire-and-forget events, opt-in iframe resizing, diagnostics, optional compile-time typed contracts, and an optional child runtime for iframe apps.
 
 Use it when you need a small, auditable bridge between your application and an embedded iframe without building a custom protocol from scratch.
 
@@ -111,6 +111,28 @@ window.addEventListener('message', (event) => {
 
 See the full [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol) for every envelope type and validation rule.
 
+### Iframe Application With Child SDK
+
+If the iframe app can install the package, use the child SDK instead of hand-writing the protocol boilerplate:
+
+```ts
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+
+const bridge = createIframeChildBridge({
+  allowedParentOrigins: ['https://host.example'],
+});
+
+await bridge.whenConnected();
+await bridge.sendEvent('cart:changed', { itemCount: 3 });
+bridge.on('theme:changed', (payload) => {});
+bridge.handleRequest('user:get', async (payload) => ({ name: 'Ada' }));
+bridge.destroy();
+```
+
+`allowedParentOrigins?: readonly string[] | null` may be omitted or set to `null` to accept the bootstrap parent origin. Non-empty arrays require exact origin match; empty arrays are invalid. If you omit the allowlist, rely on server-side/browser embedding controls such as CSP `frame-ancestors`.
+
+The child bridge has no `request()` method. Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
+
 ## Why This SDK
 
 Raw `postMessage` is intentionally low-level. Every window, iframe, tab, and extension can send messages on the same channel. A production iframe integration needs more structure than a `message` event listener.
@@ -130,6 +152,7 @@ Raw `postMessage` is intentionally low-level. Every window, iframe, tab, and ext
 
 - **Strict origin enforcement** - exact `targetOrigin` and `allowedOrigin` checks. Wildcard origins are rejected.
 - **Ready-first handshake** - the parent waits for `bridge:ready`, validates the sender, then responds with `bridge:connected`.
+- **Iframe app SDK** - optional `iframe-helper-sdk/child` runtime for child-side handshake, events, and parent request handlers.
 - **Session-scoped routing** - every bridge gets a session id so messages from unrelated iframes are ignored.
 - **Bounded pre-ready queue** - operations called before readiness are queued and flushed after handshake, with a configurable limit.
 - **Request/response API** - `bridge.request()` sends a method call and resolves with the iframe response.
@@ -184,6 +207,20 @@ const bridge = createIframeBridge(
 ```
 
 The iframe sends the requested dimensions through a standard `bridge:event` named `iframe-bridge:resize`. The parent still validates origin, source window, session id, protocol, version, and envelope shape before applying dimensions to the owned iframe element.
+
+Iframe apps that use the child SDK can import the tree-shakable child resize plugin from `iframe-helper-sdk/child/resize`:
+
+```ts
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+import { childResizePlugin } from 'iframe-helper-sdk/child/resize';
+
+const bridge = createIframeChildBridge(
+  { allowedParentOrigins: ['https://host.example'] },
+  { plugins: [childResizePlugin({ axis: 'both' })] },
+);
+```
+
+Child resize must be imported from `iframe-helper-sdk/child/resize`, not `iframe-helper-sdk/child`.
 
 `offsetWidthPx` and `offsetHeightPx` add fixed parent-side pixels before min/max bounds are applied. In development mode, the SDK warns if resize is enabled without max bounds for every active axis; in `securityProfile: 'strict'`, missing active max bounds throw `CONFIG_INVALID_RESIZE`.
 
@@ -251,7 +288,7 @@ Production checklist:
 
 - Use HTTPS for both parent and iframe origins.
 - Set `securityProfile: 'strict'` once local development is complete.
-- Keep `targetOrigin` and `allowedOrigin` exact. Do not use wildcard origins.
+- Keep `targetOrigin`, `allowedOrigin`, and child `allowedParentOrigins` exact. Do not use wildcard origins.
 - Add parent-side CSP such as `frame-src https://partner.example`.
 - Add iframe-side CSP such as `frame-ancestors https://host.example`.
 - Review iframe `sandbox` and `allow` attributes before enabling browser capabilities.
@@ -261,7 +298,7 @@ Read the full [Security guide](https://furkankaynak.github.io/iframe-helper-sdk/
 
 ## API Surface
 
-Import core public APIs from the package root. Optional plugins use documented subpath exports such as `iframe-helper-sdk/resize`; never import from internal `src` or `dist` paths.
+Import parent public APIs from the package root. Child APIs and optional plugins use documented subpath exports such as `iframe-helper-sdk/child`, `iframe-helper-sdk/resize`, and `iframe-helper-sdk/child/resize`; never import from internal `src` or `dist` paths.
 
 ```ts
 import {
@@ -278,21 +315,25 @@ import {
 } from 'iframe-helper-sdk';
 
 import { resizePlugin } from 'iframe-helper-sdk/resize';
+import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+import { childResizePlugin } from 'iframe-helper-sdk/child/resize';
 ```
 
-| Export                       | Kind     | Purpose                                             |
-| ---------------------------- | -------- | --------------------------------------------------- |
-| `createIframeBridge`         | Function | Create a parent-side iframe bridge                  |
-| `createTypedIframeBridge`    | Function | Create the same bridge with contract-narrowed types |
-| `createDiagnosticRecorder`   | Function | Capture diagnostic events in a bounded recorder     |
-| `IframeBridgeError`          | Class    | SDK error with `code`, `message`, and `details`     |
-| `BRIDGE_MESSAGE_TYPES`       | Constant | Tuple of protocol message type strings              |
-| `BRIDGE_PROTOCOL_NAME`       | Constant | Protocol name, currently `'iframe-bridge'`          |
-| `BRIDGE_PROTOCOL_VERSION`    | Constant | Protocol version, currently `1`                     |
-| `isBridgeEnvelope`           | Function | Type guard for bridge envelopes                     |
-| `validateBridgeEnvelope`     | Function | Validate and return a typed bridge envelope         |
-| `normalizeBridgeRemoteError` | Function | Normalize iframe-side error responses               |
-| `resizePlugin`               | Function | Optional child-driven resize plugin from `./resize` |
+| Export                       | Kind     | Purpose                                                 |
+| ---------------------------- | -------- | ------------------------------------------------------- |
+| `createIframeBridge`         | Function | Create a parent-side iframe bridge                      |
+| `createTypedIframeBridge`    | Function | Create the same bridge with contract-narrowed types     |
+| `createIframeChildBridge`    | Function | Create a child-side bridge inside an iframe app         |
+| `createDiagnosticRecorder`   | Function | Capture diagnostic events in a bounded recorder         |
+| `IframeBridgeError`          | Class    | SDK error with `code`, `message`, and `details`         |
+| `BRIDGE_MESSAGE_TYPES`       | Constant | Tuple of protocol message type strings                  |
+| `BRIDGE_PROTOCOL_NAME`       | Constant | Protocol name, currently `'iframe-bridge'`              |
+| `BRIDGE_PROTOCOL_VERSION`    | Constant | Protocol version, currently `1`                         |
+| `isBridgeEnvelope`           | Function | Type guard for bridge envelopes                         |
+| `validateBridgeEnvelope`     | Function | Validate and return a typed bridge envelope             |
+| `normalizeBridgeRemoteError` | Function | Normalize iframe-side error responses                   |
+| `resizePlugin`               | Function | Optional child-driven resize plugin from `./resize`     |
+| `childResizePlugin`          | Function | Optional child-side resize plugin from `./child/resize` |
 
 ### Bridge Instance
 
@@ -400,12 +441,13 @@ Diagnostics are sanitized by design and do not include raw application payloads 
 
 Full documentation: [furkankaynak.github.io/iframe-helper-sdk](https://furkankaynak.github.io/iframe-helper-sdk/)
 
-| Section      | Pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Introduction | [Home](https://furkankaynak.github.io/iframe-helper-sdk/), [Getting Started](https://furkankaynak.github.io/iframe-helper-sdk/getting-started), [Core Concepts](https://furkankaynak.github.io/iframe-helper-sdk/core-concepts)                                                                                                                                                                                                                                              |
-| Guides       | [Configuration](https://furkankaynak.github.io/iframe-helper-sdk/configuration), [Type-Safe Bridge](https://furkankaynak.github.io/iframe-helper-sdk/typed-bridge), [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol), [Security](https://furkankaynak.github.io/iframe-helper-sdk/security), [Use Cases](https://furkankaynak.github.io/iframe-helper-sdk/use-cases), [Debugging](https://furkankaynak.github.io/iframe-helper-sdk/debugging) |
-| Reference    | [API Reference](https://furkankaynak.github.io/iframe-helper-sdk/api-reference), [Error Codes](https://furkankaynak.github.io/iframe-helper-sdk/error-codes)                                                                                                                                                                                                                                                                                                                 |
-| Help         | [Troubleshooting](https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting), [FAQ](https://furkankaynak.github.io/iframe-helper-sdk/faq)                                                                                                                                                                                                                                                                                                                             |
+| Section          | Pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Introduction     | [Home](https://furkankaynak.github.io/iframe-helper-sdk/), [Getting Started](https://furkankaynak.github.io/iframe-helper-sdk/getting-started), [Core Concepts](https://furkankaynak.github.io/iframe-helper-sdk/core-concepts)                                                                                                                                                                                                                                              |
+| Guides           | [Configuration](https://furkankaynak.github.io/iframe-helper-sdk/configuration), [Type-Safe Bridge](https://furkankaynak.github.io/iframe-helper-sdk/typed-bridge), [Wire Protocol](https://furkankaynak.github.io/iframe-helper-sdk/wire-protocol), [Security](https://furkankaynak.github.io/iframe-helper-sdk/security), [Use Cases](https://furkankaynak.github.io/iframe-helper-sdk/use-cases), [Debugging](https://furkankaynak.github.io/iframe-helper-sdk/debugging) |
+| Child Iframe SDK | [Overview](https://furkankaynak.github.io/iframe-helper-sdk/child), [Security](https://furkankaynak.github.io/iframe-helper-sdk/child/security), [Events And Requests](https://furkankaynak.github.io/iframe-helper-sdk/child/events-and-requests), [Plugins](https://furkankaynak.github.io/iframe-helper-sdk/child/plugins), [Resize](https://furkankaynak.github.io/iframe-helper-sdk/child/resize)                                                                       |
+| Reference        | [API Reference](https://furkankaynak.github.io/iframe-helper-sdk/api-reference), [Error Codes](https://furkankaynak.github.io/iframe-helper-sdk/error-codes)                                                                                                                                                                                                                                                                                                                 |
+| Help             | [Troubleshooting](https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting), [FAQ](https://furkankaynak.github.io/iframe-helper-sdk/faq)                                                                                                                                                                                                                                                                                                                             |
 
 Documentation source lives in [`documentation/docs`](./documentation/docs).
 
