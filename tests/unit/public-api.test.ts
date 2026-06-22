@@ -6,13 +6,21 @@ import { IframeBridgeError, type IframeBridgeErrorCode } from '../../src/index';
 import type {
   BridgeEnvelope,
   BridgeEventEnvelope,
+  BridgePlugin,
+  BridgePluginContext,
   BridgeReadyEnvelope,
   BridgeRequestEnvelope,
   BridgeResponseEnvelope,
+  DiagnosticEvent,
   IframeBridge,
-  IframeBridgeContract,
   IframeBridgeConfig,
-  IframeBridgeSecurityProfile,
+  IframeBridgeContract,
+  IframeBridgeOptions,
+  IframeBridgeResizeCallback,
+  IframeBridgeResizeAxis,
+  IframeBridgeResizeConfig,
+  IframeBridgeResizeEvent,
+  IframeBridgeResizePayload,
   OperationOptions,
   TypedIframeBridge,
 } from '../../src/index';
@@ -57,9 +65,11 @@ describe('public bridge API', () => {
     type ExpectedWhenReady = () => Promise<void>;
     type ExpectedRemount = () => IframeBridge;
 
-    expectTypeOf<typeof publicApi.createIframeBridge>().returns.toEqualTypeOf<IframeBridge>();
-    expectTypeOf<typeof publicApi.createIframeBridge>().parameters.toEqualTypeOf<
-      [config: IframeBridgeConfig]
+    expectTypeOf<
+      Parameters<typeof publicApi.createIframeBridge>[0]
+    >().toEqualTypeOf<IframeBridgeConfig>();
+    expectTypeOf<Parameters<typeof publicApi.createIframeBridge>[1]>().toEqualTypeOf<
+      IframeBridgeOptions | undefined
     >();
     expectTypeOf<IframeBridge['request']>().toEqualTypeOf<ExpectedRequest>();
     expectTypeOf<IframeBridge['sendEvent']>().toEqualTypeOf<ExpectedSendEvent>();
@@ -69,13 +79,63 @@ describe('public bridge API', () => {
     expectTypeOf<IframeBridge['remount']>().toEqualTypeOf<ExpectedRemount>();
 
     const signalOnlyOptions = { signal: new AbortController().signal } satisfies OperationOptions;
-    const strictSecurityProfile = 'strict' satisfies IframeBridgeSecurityProfile;
-    const strictConfig = {
-      securityProfile: strictSecurityProfile,
-    } satisfies Pick<IframeBridgeConfig, 'securityProfile'>;
+    const resizeAxis = 'both' satisfies IframeBridgeResizeAxis;
+    const resizePayload = { height: 640, width: 800 } satisfies IframeBridgeResizePayload;
+    const resizeHeightOnlyPayload = { height: 640 } satisfies IframeBridgeResizePayload;
+    const resizeWidthOnlyPayload = { width: 800 } satisfies IframeBridgeResizePayload;
+    const resizeEvent = {
+      height: 640,
+      requestedHeight: 620,
+      requestedWidth: 780,
+      width: 800,
+    } satisfies IframeBridgeResizeEvent;
+    const resizeCallback = ((event) => {
+      expectTypeOf(event.height).toEqualTypeOf<number | undefined>();
+      expectTypeOf(event.requestedHeight).toEqualTypeOf<number | undefined>();
+      expectTypeOf(event.requestedWidth).toEqualTypeOf<number | undefined>();
+      expectTypeOf(event.width).toEqualTypeOf<number | undefined>();
+    }) satisfies IframeBridgeResizeCallback;
+    const resizeConfig = {
+      axis: resizeAxis,
+      maxHeightPx: 900,
+      maxWidthPx: 1200,
+      minHeightPx: 240,
+      minWidthPx: 320,
+      offsetHeightPx: 12,
+      offsetWidthPx: -8,
+      onResize: resizeCallback,
+    } satisfies IframeBridgeResizeConfig;
 
     expectTypeOf(signalOnlyOptions.signal).toEqualTypeOf<AbortSignal>();
-    expectTypeOf(strictConfig.securityProfile).toEqualTypeOf<'strict'>();
+    expectTypeOf(resizePayload.height).toEqualTypeOf<number>();
+    expectTypeOf(resizeEvent.width).toEqualTypeOf<number>();
+    expectTypeOf(resizeHeightOnlyPayload.height).toEqualTypeOf<number>();
+    expectTypeOf(resizeWidthOnlyPayload.width).toEqualTypeOf<number>();
+    expectTypeOf(resizeConfig.axis).toMatchTypeOf<IframeBridgeResizeAxis>();
+
+    // @ts-expect-error resize payloads must include at least one dimension
+    const emptyResizePayload = {} satisfies IframeBridgeResizePayload;
+    void emptyResizePayload;
+
+    const invalidResizeConfig = {
+      // @ts-expect-error resize offsets must be numbers
+      offsetWidthPx: '12',
+      // @ts-expect-error resize callbacks must be functions
+      onResize: 'not-a-function',
+    } satisfies IframeBridgeResizeConfig;
+    void invalidResizeConfig;
+
+    // IframeBridgeConfig must no longer carry a `resize` field; sizing is opt-in via plugins.
+    type ConfigKeys = keyof IframeBridgeConfig;
+    type ResizeNotInConfig = 'resize' extends ConfigKeys ? false : true;
+    expectTypeOf<ResizeNotInConfig>().toEqualTypeOf<true>();
+
+    // IframeBridgeOptions.plugins accepts a readonly tuple of BridgePlugin factories.
+    expectTypeOf<Required<IframeBridgeOptions>['plugins']>().toEqualTypeOf<
+      readonly BridgePlugin[]
+    >();
+    expectTypeOf<BridgePluginContext['warn']>().toEqualTypeOf<(event: DiagnosticEvent) => void>();
+    void resizeConfig;
   });
 
   test('exposes a contract typed bridge factory through the entrypoint', () => {
@@ -96,9 +156,12 @@ describe('public bridge API', () => {
     type ContractAssignable = AppContract extends IframeBridgeContract ? true : false;
 
     expectTypeOf<ContractAssignable>().toEqualTypeOf<true>();
-    expectTypeOf<typeof publicApi.createTypedIframeBridge<AppContract>>().parameters.toEqualTypeOf<
-      [config: IframeBridgeConfig]
-    >();
+    expectTypeOf<
+      Parameters<typeof publicApi.createTypedIframeBridge<AppContract>>[0]
+    >().toEqualTypeOf<IframeBridgeConfig>();
+    expectTypeOf<
+      Parameters<typeof publicApi.createTypedIframeBridge<AppContract>>[1]
+    >().toEqualTypeOf<IframeBridgeOptions | undefined>();
     expectTypeOf<typeof publicApi.createTypedIframeBridge<AppContract>>().returns.toEqualTypeOf<
       TypedIframeBridge<AppContract>
     >();

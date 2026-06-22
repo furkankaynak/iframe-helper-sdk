@@ -298,6 +298,8 @@ You registered a listener with `bridge.on()` or called `bridge.waitForEvent()`, 
 
 5. **Mixed up `on()` and `waitForEvent()`.** `on()` doesn't return a promise — it returns an unsubscribe function. Calling `await bridge.on(...)` does nothing useful. Use `waitForEvent()` when you need to await a single occurrence.
 
+6. **Listening for a claimed resize event.** When `resizePlugin()` is registered, `iframe-bridge:resize` is consumed by the plugin and is not delivered to `bridge.on()` or `bridge.waitForEvent()`. Use `resizePlugin({ onResize })` to observe applied iframe resizes.
+
 ### Debugging event delivery
 
 Enable debug diagnostics and listen for `MESSAGE_INVALID_ENVELOPE` — if the iframe's event envelope is missing the `name` field or uses the wrong `type`, it's rejected before reaching your listener.
@@ -442,7 +444,7 @@ The eight checks above are useful for quick inspection, but they won't tell you 
 ## Next Steps
 
 - **[Debugging & Diagnostics](./debugging)** — Set up the diagnostic recorder and logger hooks for fine-grained visibility.
-- **[Error Codes](./error-codes)** — Reference for all 26 error codes with causes and recovery actions.
+- **[Error Codes](./error-codes)** — Reference for all 27 error codes with causes and recovery actions.
 - **[Configuration](./configuration)** — Full reference for every `IframeBridgeConfig` option mentioned here.
 - **[Wire Protocol](./wire-protocol)** — The envelope specification your iframe must follow.
 - **[Security](./security)** — Security model, CSP configuration, and production hardening.

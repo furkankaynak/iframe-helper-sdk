@@ -3,18 +3,23 @@ import type {
   IframeBridge,
   IframeBridgeConfig,
   IframeBridgeContract,
+  IframeBridgeOptions,
   TypedIframeBridge,
 } from './types/index.js';
 
-export function createIframeBridge(config: IframeBridgeConfig): IframeBridge {
-  return createIframeBridgeInternal(config);
+export function createIframeBridge(
+  config: IframeBridgeConfig,
+  options?: IframeBridgeOptions,
+): IframeBridge {
+  return createIframeBridgeInternal(config, {}, options);
 }
 
 export function createTypedIframeBridge<TContract extends IframeBridgeContract>(
   config: IframeBridgeConfig,
+  options?: IframeBridgeOptions,
 ): TypedIframeBridge<TContract> {
   // The runtime bridge is contract-agnostic; this narrows the public method names and payloads at compile time only.
-  return createIframeBridgeInternal(config) as TypedIframeBridge<TContract>;
+  return createIframeBridgeInternal(config, {}, options) as TypedIframeBridge<TContract>;
 }
 
 export { createDiagnosticRecorder } from './diagnostics/diagnostics.js';
@@ -41,6 +46,9 @@ export type {
   BridgeEnvelopeError,
   BridgeEventEnvelope,
   BridgeMessageType,
+  BridgePlugin,
+  BridgePluginContext,
+  BridgePluginHandle,
   BridgeProtocolName,
   BridgeProtocolVersion,
   BridgeReadyEnvelope,
@@ -58,7 +66,13 @@ export type {
   IframeBridgeEventHandler,
   IframeBridgeIframeAttributes,
   IframeBridgeLogger,
+  IframeBridgeOptions,
   IframeBridgeQueueConfig,
+  IframeBridgeResizeCallback,
+  IframeBridgeResizeEvent,
+  IframeBridgeResizeAxis,
+  IframeBridgeResizeConfig,
+  IframeBridgeResizePayload,
   IframeBridgeRequestContract,
   IframeBridgeSecurityProfile,
   IframeBridgeTimeoutConfig,

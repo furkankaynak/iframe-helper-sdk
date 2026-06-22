@@ -8,7 +8,7 @@
 
 **Secure, structured communication between a parent page and cross-domain iframes.**
 
-`iframe-helper-sdk` is a zero-dependency TypeScript SDK for parent-side iframe integrations. It wraps `window.postMessage` with exact origin validation, ready-first handshakes, session routing, bounded queueing, request/response timeouts, fire-and-forget events, diagnostics, and optional compile-time typed contracts.
+`iframe-helper-sdk` is a zero-dependency TypeScript SDK for parent-side iframe integrations. It wraps `window.postMessage` with exact origin validation, ready-first handshakes, session routing, bounded queueing, request/response timeouts, fire-and-forget events, opt-in iframe resizing, diagnostics, and optional compile-time typed contracts.
 
 Use it when you need a small, auditable bridge between your application and an embedded iframe without building a custom protocol from scratch.
 
@@ -134,6 +134,7 @@ Raw `postMessage` is intentionally low-level. Every window, iframe, tab, and ext
 - **Bounded pre-ready queue** - operations called before readiness are queued and flushed after handshake, with a configurable limit.
 - **Request/response API** - `bridge.request()` sends a method call and resolves with the iframe response.
 - **Event API** - `bridge.sendEvent()`, `bridge.on()`, and `bridge.waitForEvent()` cover one-way and inbound event flows.
+- **Iframe resize** - opt into child-driven width and height updates with parent-side bounds, offsets, and an applied-resize callback.
 - **Typed contracts** - `createTypedIframeBridge` narrows method names, payloads, and responses at compile time with no runtime cost.
 - **Structured errors** - every SDK error is an `IframeBridgeError` with a stable `code` and optional `details`.
 - **Diagnostics** - use `createDiagnosticRecorder` or a custom logger to observe lifecycle, handshake, queue, and filtering decisions.
@@ -141,15 +142,58 @@ Raw `postMessage` is intentionally low-level. Every window, iframe, tab, and ext
 
 ## Communication Patterns
 
-| You want to                                  | Use                                   |
-| -------------------------------------------- | ------------------------------------- |
-| Wait until the iframe is ready               | `bridge.whenReady()`                  |
-| Ask the iframe for a result                  | `bridge.request(method, payload)`     |
-| Notify the iframe without waiting for a body | `bridge.sendEvent(name, payload)`     |
-| Subscribe to iframe events                   | `bridge.on(name, handler)`            |
-| Wait for one matching iframe event           | `bridge.waitForEvent(name, options?)` |
-| Recreate a failed bridge attempt             | `bridge.remount()`                    |
-| Remove listeners, timers, and the iframe     | `bridge.destroy()`                    |
+| You want to                                  | Use                                             |
+| -------------------------------------------- | ----------------------------------------------- |
+| Wait until the iframe is ready               | `bridge.whenReady()`                            |
+| Ask the iframe for a result                  | `bridge.request(method, payload)`               |
+| Notify the iframe without waiting for a body | `bridge.sendEvent(name, payload)`               |
+| Subscribe to iframe events                   | `bridge.on(name, handler)`                      |
+| Wait for one matching iframe event           | `bridge.waitForEvent(name, options?)`           |
+| Let the iframe resize itself                 | `resizePlugin()` + `iframe-bridge:resize` event |
+| Recreate a failed bridge attempt             | `bridge.remount()`                              |
+| Remove listeners, timers, and the iframe     | `bridge.destroy()`                              |
+
+## Child-Driven Resize
+
+Resize is opt-in and tree-shakable. Import the resize plugin from the `iframe-helper-sdk/resize` subpath, register it on the parent, then have the iframe send the reserved `iframe-bridge:resize` event after the bridge connects.
+
+```ts
+import { createIframeBridge } from 'iframe-helper-sdk';
+import { resizePlugin } from 'iframe-helper-sdk/resize';
+
+const bridge = createIframeBridge(
+  {
+    container: '#partner-frame',
+    src: 'https://partner.example/app',
+  },
+  {
+    plugins: [
+      resizePlugin({
+        minWidthPx: 320,
+        maxWidthPx: 1200,
+        minHeightPx: 240,
+        maxHeightPx: 900,
+        offsetHeightPx: 16,
+        onResize({ width, height }) {
+          console.log('iframe resized to', width, height);
+        },
+      }),
+    ],
+  },
+);
+```
+
+```js
+postToParent({
+  type: 'bridge:event',
+  name: 'iframe-bridge:resize',
+  payload: { width: 800, height: 640 },
+});
+```
+
+The parent still validates origin, source window, session id, protocol, version, and envelope shape before applying dimensions to the owned iframe element.
+
+`offsetWidthPx` and `offsetHeightPx` add fixed parent-side pixels before min/max bounds are applied. Send one resize event immediately after `bridge:connected`, then send again whenever content dimensions change.
 
 ## Type-Safe Bridge
 

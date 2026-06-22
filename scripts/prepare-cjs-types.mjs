@@ -1,8 +1,10 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { copyFile } from 'node:fs/promises';
 
-const esmTypesPath = 'dist/types/index.d.ts';
-const cjsTypesPath = 'dist/types/index.d.cts';
+const entryNames = ['index', 'resize'];
 
-const esmTypes = await readFile(esmTypesPath, 'utf8');
+for (const entryName of entryNames) {
+  const esmTypesPath = `dist/types/${entryName}.d.ts`;
+  const cjsTypesPath = `dist/types/${entryName}.d.cts`;
 
-await writeFile(cjsTypesPath, esmTypes);
+  await copyFile(esmTypesPath, cjsTypesPath);
+}

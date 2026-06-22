@@ -194,9 +194,9 @@ The import itself is side-effect-free — you can `import type` the types at the
 
 ---
 
-## Can I resize the iframe from the parent?
+## Can I resize the iframe?
 
-Not with built-in SDK APIs. The SDK owns the iframe element (`bridge.iframe`), so you can resize it directly if both pages are same-origin:
+Yes. For parent-controlled sizing, the SDK exposes the owned iframe element (`bridge.iframe`), so you can resize it directly:
 
 ```ts
 await bridge.whenReady();
@@ -204,17 +204,53 @@ bridge.iframe.style.width = '800px';
 bridge.iframe.style.height = '600px';
 ```
 
-For cross-domain resizing, use a request/response pattern to coordinate. The iframe app can know its own content height and respond to a parent request:
+For child-driven cross-domain sizing, register `resizePlugin()` in the parent options and have the iframe send the reserved `iframe-bridge:resize` event:
 
 ```ts
-// Parent side
-const { height } = await bridge.request<{}, { height: number }>('layout:getHeight', {});
-bridge.iframe.style.height = `${height}px`;
+import { createIframeBridge } from 'iframe-helper-sdk';
+import { resizePlugin } from 'iframe-helper-sdk/resize';
+
+const bridge = createIframeBridge(
+  {
+    container: '#partner-frame',
+    src: 'https://partner.example/app',
+  },
+  {
+    plugins: [
+      resizePlugin({
+        minHeightPx: 240,
+        maxHeightPx: 900,
+        offsetHeightPx: 16,
+        onResize({ width, height }) {
+          console.log('applied iframe size', width, height);
+        },
+      }),
+    ],
+  },
+);
 ```
 
-The iframe app implements a handler for `layout:getHeight` that returns the content dimensions. This is a request/response flow using the existing protocol — no resizing-specific API is needed.
+```js
+postToParent({
+  type: 'bridge:event',
+  name: 'iframe-bridge:resize',
+  payload: { width: 800, height: 640 },
+});
+```
 
-Automatic resize observation (MutationObserver, ResizeObserver) and cross-domain resize are non-goals for the current SDK. If you need them, you can build them on top of `bridge.request` and `bridge.on`.
+The parent still validates the message through the normal bridge chain before applying dimensions. Use min/max bounds so the iframe cannot force unreasonable layout changes. Use `offsetWidthPx` and `offsetHeightPx` when the parent needs fixed extra pixels around iframe content, and use `onResize` to observe final applied dimensions.
+
+The iframe should send one resize immediately after `bridge:connected`, then send again whenever content dimensions change.
+
+---
+
+## Does the SDK provide a focus trap?
+
+No. Focus trapping is an advanced app-level accessibility concern, not a core bridge feature.
+
+If an iframe is displayed inside a modal, drawer, or overlay, your parent app and iframe app should manage focus placement, `Escape` handling, ARIA state, and focus restoration. Cross-origin iframes usually require cooperation from both sides because the parent cannot inspect or control the iframe document's tabbable elements.
+
+You can use the bridge's event/request APIs to coordinate focus-related lifecycle signals, but the SDK does not enforce keyboard behavior or guarantee WCAG conformance.
 
 ---
 

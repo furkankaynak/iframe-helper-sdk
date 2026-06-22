@@ -41,6 +41,29 @@
         padding: 14px;
         white-space: pre-wrap;
       }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        background: #38bdf8;
+        color: #082f49;
+        cursor: pointer;
+        font: inherit;
+        margin: 8px 0 16px;
+        padding: 10px 12px;
+      }
+
+      .extra-content {
+        display: grid;
+        gap: 12px;
+      }
+
+      .extra-content p {
+        border: 1px solid #334155;
+        border-radius: 12px;
+        margin: 0;
+        padding: 12px;
+      }
     </style>
   </head>
   <body>
@@ -49,6 +72,8 @@
         <h1>Manual Iframe</h1>
         <p>This app implements the raw bridge protocol directly and imports no SDK code.</p>
         <p>Status: <strong id="status">booting</strong></p>
+        <button id="content-button" type="button">Add dynamic content</button>
+        <div id="extra-content" class="extra-content"></div>
         <pre id="log"></pre>
       </div>
     </main>
@@ -61,12 +86,24 @@
       const parentOrigin = params.get('__iframeBridgeParentOrigin');
       const statusElement = document.querySelector('#status');
       const logElement = document.querySelector('#log');
+      const contentButton = document.querySelector('#content-button');
+      const extraContent = document.querySelector('#extra-content');
+      let connected = false;
+      let lastResize = '';
+
+      contentButton.addEventListener('click', () => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = `Dynamic iframe content block ${extraContent.children.length + 1}`;
+        extraContent.append(paragraph);
+        requestAnimationFrame(sendResize);
+      });
 
       if (!sessionId || !parentOrigin) {
         statusElement.textContent = 'missing bootstrap params';
         log('Missing __iframeBridgeSessionId or __iframeBridgeParentOrigin');
       } else {
         window.addEventListener('message', handleMessage);
+        observeResize();
         postToParent({ type: 'bridge:ready' });
         statusElement.textContent = 'ready sent';
         log(`Sent bridge:ready to ${parentOrigin}`);
@@ -86,8 +123,10 @@
         }
 
         if (envelope.type === 'bridge:connected') {
+          connected = true;
           statusElement.textContent = 'connected';
           log('Received bridge:connected');
+          sendResize();
           postToParent({ name: 'cart:changed', payload: { itemCount: 1 }, type: 'bridge:event' });
           return;
         }
@@ -130,6 +169,41 @@
           },
           parentOrigin,
         );
+      }
+
+      function observeResize() {
+        if (typeof ResizeObserver === 'undefined') {
+          return;
+        }
+
+        const observer = new ResizeObserver(sendResize);
+        observer.observe(document.documentElement);
+        observer.observe(document.body);
+      }
+
+      function sendResize() {
+        if (!connected) {
+          return;
+        }
+
+        const width = Math.ceil(
+          Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
+        );
+        const height = Math.ceil(
+          Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+        );
+        const nextResize = `${width}x${height}`;
+
+        if (nextResize === lastResize) {
+          return;
+        }
+
+        lastResize = nextResize;
+        postToParent({
+          name: 'iframe-bridge:resize',
+          payload: { height, width },
+          type: 'bridge:event',
+        });
       }
 
       function isBridgeEnvelope(value) {

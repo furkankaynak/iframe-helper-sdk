@@ -43,6 +43,7 @@ The SDK is a transport and lifecycle layer — not a complete security solution.
 - **Runtime payload validation.** TypeScript contract types (`createTypedIframeBridge`) are compile-time only. They do not validate payloads at runtime and are not a security boundary.
 - **Proof of remote processing.** `sendEvent()` resolves after posting — it does not confirm the iframe processed the message. Use `request()` when acknowledgement is required.
 - **Same-origin isolation.** If the parent and iframe share an origin, the iframe can access the parent DOM, cookies, storage, and service worker scope. The SDK does not prevent same-origin access — that's a browser guarantee.
+- **Accessibility or focus management.** The SDK does not trap focus, handle `Escape`, set ARIA state, or restore focus. Implement those behaviors in your parent app and iframe app when using modals, drawers, or overlays.
 
 :::danger Same-origin is not isolation
 

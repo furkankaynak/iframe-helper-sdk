@@ -14,7 +14,7 @@ describe('production package configuration', () => {
     const bugs = getRecord(packageJson.bugs, 'bugs');
     const author = getRecord(packageJson.author, 'author');
 
-    expect(packageJson.version).toBe('0.1.2');
+    expect(packageJson.version).toBe('0.1.3');
     expect(packageJson.description).toBe(
       'TypeScript SDK for secure cross-domain iframe embeds with a strict postMessage bridge, origin validation, handshakes, RPC-style requests, events, and typed contracts.',
     );
@@ -76,15 +76,46 @@ describe('production package configuration', () => {
     const build = getRecord(viteConfig.build, 'vite build config');
     const lib = getRecord(build.lib, 'vite library config');
     const fileName = getFileNameFactory(lib.fileName);
+    const entry = getRecord(lib.entry, 'vite library entry map');
 
     expect(lib.formats).toEqual(['es', 'cjs']);
+    expect(Object.keys(entry).sort()).toEqual(['index', 'resize']);
     expect(fileName('es', 'index')).toBe('index.js');
     expect(fileName('cjs', 'index')).toBe('index.cjs');
+    expect(fileName('es', 'resize')).toBe('resize.js');
+    expect(fileName('cjs', 'resize')).toBe('resize.cjs');
     expect(build.target).toBe('es2020');
     expect(build.minify).toBe('oxc');
     expect(build.sourcemap).toBe(false);
     expect(build.emptyOutDir).toBe(true);
     expect(build.reportCompressedSize).toBe(true);
+  });
+
+  test('exposes the ./resize subpath export with ESM, CJS, and declaration paths', async () => {
+    const packageJson = await readJson('package.json');
+    const exports = getRecord(packageJson.exports, 'exports');
+    const resizeExport = getRecord(exports['./resize'], 'exports["./resize"]');
+    const resizeImport = getRecord(resizeExport.import, 'exports["./resize"].import');
+    const resizeRequire = getRecord(resizeExport.require, 'exports["./resize"].require');
+
+    expect(Object.keys(resizeExport).sort()).toEqual(['default', 'import', 'require']);
+    expect(Object.keys(resizeImport).sort()).toEqual(['default', 'types']);
+    expect(resizeImport.types).toBe('./dist/types/resize.d.ts');
+    expect(resizeImport.default).toBe('./dist/resize.js');
+    expect(Object.keys(resizeRequire).sort()).toEqual(['default', 'types']);
+    expect(resizeRequire.types).toBe('./dist/types/resize.d.cts');
+    expect(resizeRequire.default).toBe('./dist/resize.cjs');
+    expect(resizeExport.default).toBe('./dist/resize.js');
+  });
+
+  test('prepares CJS type aliases for all library entry points', async () => {
+    const prepareCjsTypes = await readFile(
+      join(projectRoot, 'scripts', 'prepare-cjs-types.mjs'),
+      'utf8',
+    );
+
+    expect(prepareCjsTypes).toContain('index');
+    expect(prepareCjsTypes).toContain('resize');
   });
 
   test('emits TypeScript declarations into a dedicated dist/types folder', async () => {

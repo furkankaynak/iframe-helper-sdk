@@ -316,16 +316,18 @@ Operations called before `ready` are queued when `queue.enabled` is `true` (defa
 
 Diagnostic codes are metadata on `DiagnosticEvent.code` — they help you filter, search, and route events. Some codes overlap with `IframeBridgeErrorCode`, but diagnostic codes are not limited to thrown errors.
 
-| Code                               | Level | Meaning                                                          | Typical cause                                                               |
-| ---------------------------------- | ----- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `EVENT_LISTENER_ERROR`             | error | A user-registered `on()` listener threw.                         | Unhandled error in your event handler.                                      |
-| `MESSAGE_DESERIALIZATION_ERROR`    | error | Browser fired `messageerror` for a postMessage the SDK expected. | Non-structured-cloneable data from the iframe.                              |
-| `MESSAGE_ORIGIN_MISMATCH`          | debug | Incoming message origin didn't match `allowedOrigin`.            | Another page posting on the same channel, or `allowedOrigin` misconfigured. |
-| `MESSAGE_SESSION_MISMATCH`         | debug | Incoming message had a different session id.                     | Another bridge instance's messages, or stale iframe messages after remount. |
-| `MESSAGE_SOURCE_MISMATCH`          | debug | Incoming message came from a window that isn't the owned iframe. | Nested iframes or third-party scripts posting messages.                     |
-| `MESSAGE_INVALID_ENVELOPE`         | debug | Message matched transport but failed envelope validation.        | Protocol name, version, type, or required fields don't match the spec.      |
-| `CONFIG_UNSAFE_SANDBOX`            | warn  | Sandbox combines `allow-scripts` with `allow-same-origin`.       | Intentional for some integrations; surfaces as a warning so you can review. |
-| `CONFIG_UNSAFE_PERMISSIONS_POLICY` | warn  | `iframeAttributes.allow` uses wildcard feature grants.           | `allow="*"` or broad permission grants; narrow to specific features.        |
+| Code                               | Level | Meaning                                                              | Typical cause                                                               |
+| ---------------------------------- | ----- | -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `EVENT_LISTENER_ERROR`             | error | A user-registered `on()` listener threw.                             | Unhandled error in your event handler.                                      |
+| `MESSAGE_DESERIALIZATION_ERROR`    | error | Browser fired `messageerror` for a postMessage the SDK expected.     | Non-structured-cloneable data from the iframe.                              |
+| `MESSAGE_ORIGIN_MISMATCH`          | debug | Incoming message origin didn't match `allowedOrigin`.                | Another page posting on the same channel, or `allowedOrigin` misconfigured. |
+| `MESSAGE_SESSION_MISMATCH`         | debug | Incoming message had a different session id.                         | Another bridge instance's messages, or stale iframe messages after remount. |
+| `MESSAGE_SOURCE_MISMATCH`          | debug | Incoming message came from a window that isn't the owned iframe.     | Nested iframes or third-party scripts posting messages.                     |
+| `MESSAGE_INVALID_ENVELOPE`         | debug | Message matched transport but failed envelope validation.            | Protocol name, version, type, or required fields don't match the spec.      |
+| `CONFIG_UNSAFE_SANDBOX`            | warn  | Sandbox combines `allow-scripts` with `allow-same-origin`.           | Intentional for some integrations; surfaces as a warning so you can review. |
+| `CONFIG_UNSAFE_PERMISSIONS_POLICY` | warn  | `iframeAttributes.allow` uses wildcard feature grants.               | `allow="*"` or broad permission grants; narrow to specific features.        |
+| `RESIZE_INVALID_PAYLOAD`           | warn  | Iframe sent an `iframe-bridge:resize` event with an invalid payload. | Missing dimensions, non-numeric values, or negative numbers in the payload. |
+| `RESIZE_CALLBACK_ERROR`            | warn  | A `resizePlugin({ onResize })` callback threw.                       | Unhandled error in your resize callback. The resize was applied regardless. |
 
 :::tip Diagnose handshake failures
 
