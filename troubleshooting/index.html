@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.1">
 <title data-rh="true">Troubleshooting | Iframe Helper SDK</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://furkankaynak.github.io/iframe-helper-sdk/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://furkankaynak.github.io/iframe-helper-sdk/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Troubleshooting | Iframe Helper SDK"><meta data-rh="true" name="description" content="Step-by-step diagnostic flows for common integration problems — handshake failures, origin mismatches, CSP issues, and communication errors."><meta data-rh="true" property="og:description" content="Step-by-step diagnostic flows for common integration problems — handshake failures, origin mismatches, CSP issues, and communication errors."><link data-rh="true" rel="icon" href="/iframe-helper-sdk/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting"><link data-rh="true" rel="alternate" href="https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting" hreflang="en"><link data-rh="true" rel="alternate" href="https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Troubleshooting","item":"https://furkankaynak.github.io/iframe-helper-sdk/troubleshooting"}]}</script><link rel="stylesheet" href="/iframe-helper-sdk/assets/css/styles.3a1d1d8e.css">
-<script src="/iframe-helper-sdk/assets/js/runtime~main.41069ac2.js" defer="defer"></script>
+<script src="/iframe-helper-sdk/assets/js/runtime~main.cbc381d9.js" defer="defer"></script>
 <script src="/iframe-helper-sdk/assets/js/main.befb89da.js" defer="defer"></script>
 </head>
 <body>
@@ -188,6 +188,9 @@
 <li class="">
 <p><strong>Mixed up <code>on()</code> and <code>waitForEvent()</code>.</strong> <code>on()</code> doesn&#x27;t return a promise — it returns an unsubscribe function. Calling <code>await bridge.on(...)</code> does nothing useful. Use <code>waitForEvent()</code> when you need to await a single occurrence.</p>
 </li>
+<li class="">
+<p><strong>Listening for a claimed resize event.</strong> When <code>resizePlugin()</code> is registered, <code>iframe-bridge:resize</code> is consumed by the plugin and is not delivered to <code>bridge.on()</code> or <code>bridge.waitForEvent()</code>. Use <code>resizePlugin({ onResize })</code> to observe applied iframe resizes.</p>
+</li>
 </ol>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="debugging-event-delivery">Debugging event delivery<a href="#debugging-event-delivery" class="hash-link" aria-label="Direct link to Debugging event delivery" title="Direct link to Debugging event delivery" translate="no">​</a></h3>
 <p>Enable debug diagnostics and listen for <code>MESSAGE_INVALID_ENVELOPE</code> — if the iframe&#x27;s event envelope is missing the <code>name</code> field or uses the wrong <code>type</code>, it&#x27;s rejected before reaching your listener.</p>
@@ -244,7 +247,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="next-steps">Next Steps<a href="#next-steps" class="hash-link" aria-label="Direct link to Next Steps" title="Direct link to Next Steps" translate="no">​</a></h2>
 <ul>
 <li class=""><strong><a class="" href="/iframe-helper-sdk/debugging">Debugging &amp; Diagnostics</a></strong> — Set up the diagnostic recorder and logger hooks for fine-grained visibility.</li>
-<li class=""><strong><a class="" href="/iframe-helper-sdk/error-codes">Error Codes</a></strong> — Reference for all 26 error codes with causes and recovery actions.</li>
+<li class=""><strong><a class="" href="/iframe-helper-sdk/error-codes">Error Codes</a></strong> — Reference for all 27 error codes with causes and recovery actions.</li>
 <li class=""><strong><a class="" href="/iframe-helper-sdk/configuration">Configuration</a></strong> — Full reference for every <code>IframeBridgeConfig</code> option mentioned here.</li>
 <li class=""><strong><a class="" href="/iframe-helper-sdk/wire-protocol">Wire Protocol</a></strong> — The envelope specification your iframe must follow.</li>
 <li class=""><strong><a class="" href="/iframe-helper-sdk/security">Security</a></strong> — Security model, CSP configuration, and production hardening.</li>
