@@ -59,7 +59,8 @@ describe('production package configuration', () => {
     expect(packageJson.sideEffects).toBe(false);
     expect(packageJson.files).toEqual(['dist']);
     expect(engines.node).toBe('>=18');
-    expect(Object.keys(rootExport)).toEqual(['import', 'require', 'default']);
+    expect(Object.keys(rootExport)).toEqual(['module', 'import', 'require', 'default']);
+    expect(rootExport.module).toBe('./dist/index.js');
     expect(Object.keys(importExport)).toEqual(['types', 'default']);
     expect(importExport.types).toBe('./dist/types/index.d.ts');
     expect(importExport.default).toBe('./dist/index.js');
@@ -96,14 +97,15 @@ describe('production package configuration', () => {
     expect(build.reportCompressedSize).toBe(true);
   });
 
-  test('exposes the ./resize subpath export with ESM, CJS, and declaration paths', async () => {
+  test('exposes the ./resize subpath export with Vite module condition, ESM, CJS, and declaration paths', async () => {
     const packageJson = await readJson('package.json');
     const exports = getRecord(packageJson.exports, 'exports');
     const resizeExport = getRecord(exports['./resize'], 'exports["./resize"]');
     const resizeImport = getRecord(resizeExport.import, 'exports["./resize"].import');
     const resizeRequire = getRecord(resizeExport.require, 'exports["./resize"].require');
 
-    expect(Object.keys(resizeExport).sort()).toEqual(['default', 'import', 'require']);
+    expect(Object.keys(resizeExport).sort()).toEqual(['default', 'import', 'module', 'require']);
+    expect(resizeExport.module).toBe('./dist/resize.js');
     expect(Object.keys(resizeImport).sort()).toEqual(['default', 'types']);
     expect(resizeImport.types).toBe('./dist/types/resize.d.ts');
     expect(resizeImport.default).toBe('./dist/resize.js');
@@ -113,7 +115,7 @@ describe('production package configuration', () => {
     expect(resizeExport.default).toBe('./dist/resize.js');
   });
 
-  test('exposes child subpath exports with ESM, CJS, and declaration paths', async () => {
+  test('exposes child subpath exports with Vite module condition, ESM, CJS, and declaration paths', async () => {
     const packageJson = await readJson('package.json');
     const exports = getRecord(packageJson.exports, 'exports');
 
@@ -238,7 +240,8 @@ function expectSubpathExport(
   const importExport = getRecord(subpathExport.import, `exports["${subpath}"].import`);
   const requireExport = getRecord(subpathExport.require, `exports["${subpath}"].require`);
 
-  expect(Object.keys(subpathExport).sort()).toEqual(['default', 'import', 'require']);
+  expect(Object.keys(subpathExport).sort()).toEqual(['default', 'import', 'module', 'require']);
+  expect(subpathExport.module).toBe(expected.esm);
   expect(Object.keys(importExport).sort()).toEqual(['default', 'types']);
   expect(importExport.types).toBe(expected.esmTypes);
   expect(importExport.default).toBe(expected.esm);

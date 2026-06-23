@@ -5,13 +5,15 @@ import {
   type BridgeTransportInvalidMessage,
 } from '../messaging/post-message-transport.js';
 import { BRIDGE_PROTOCOL_NAME, BRIDGE_PROTOCOL_VERSION } from '../protocol/envelope.js';
-import { IframeBridgeError } from '../shared/errors.js';
+import { IframeBridgeError, createOperationAbortedError } from '../shared/errors.js';
 import type {
   BridgeEnvelope,
   BridgeEventEnvelope,
+  BridgeRequestEnvelope,
   IframeChildBridge,
   IframeChildBridgeConfig,
   IframeChildBridgeEventHandler,
+  IframeChildOperationOptions,
   IframeChildBridgeOptions,
   IframeChildBridgePluginHandle,
   IframeChildBridgeRequestHandler,
@@ -75,7 +77,9 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
   readonly #config: NormalizedIframeChildBridgeConfig;
   readonly #connectedWaiters = new Set<ConnectedWaiter>();
   readonly #diagnostics: BridgeDiagnostics;
+  readonly #eventListeners = new Map<string, Set<IframeChildBridgeEventHandler<unknown>>>();
   readonly #pluginHandles: IframeChildBridgePluginHandle[];
+  readonly #requestHandlers = new Map<string, IframeChildBridgeRequestHandler<unknown, unknown>>();
   readonly #setTimeout: (handler: () => void, timeoutMs: number) => ReturnType<typeof setTimeout>;
   readonly #transport: ChildBridgeTransport;
   #connectionTimer: ReturnType<typeof setTimeout> | undefined;
@@ -93,6 +97,7 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
       onConnected: this.#acceptConnected,
       onEvent: this.#handleEvent,
       onInvalidMessage: this.#handleInvalidMessage,
+      onRequest: this.#handleRequest,
       parentWindow: options.childWindow,
       sessionId: options.config.sessionId,
       sourceWindow: options.parentWindow,
@@ -142,11 +147,21 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
     this.#clearConnectionTimer();
     this.#transport.stop();
     this.#destroyPlugins();
+    this.#eventListeners.clear();
+    this.#requestHandlers.clear();
     this.#rejectConnectedWaiters(error);
     this.#state = 'destroyed';
   }
 
-  sendEvent<TPayload = unknown>(name: string, payload: TPayload): Promise<void> {
+  sendEvent<TPayload = unknown>(
+    name: string,
+    payload: TPayload,
+    options?: IframeChildOperationOptions,
+  ): Promise<void> {
+    if (options?.signal?.aborted) {
+      return Promise.reject(createOperationAbortedError({ name }));
+    }
+
     if (this.#state !== 'connected') {
       return Promise.reject(this.#createUnavailableError());
     }
@@ -167,31 +182,54 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
   }
 
   on<TPayload = unknown>(
-    _name: string,
-    _handler: IframeChildBridgeEventHandler<TPayload>,
+    name: string,
+    handler: IframeChildBridgeEventHandler<TPayload>,
   ): () => void {
-    void _name;
-    void _handler;
-
     if (this.#state === 'destroyed' || this.#state === 'connection_failed') {
       throw this.#createUnavailableError();
     }
 
-    return () => undefined;
+    let listeners = this.#eventListeners.get(name);
+
+    if (listeners === undefined) {
+      listeners = new Set();
+      this.#eventListeners.set(name, listeners);
+    }
+
+    const listener = handler as IframeChildBridgeEventHandler<unknown>;
+    listeners.add(listener);
+
+    return () => {
+      const currentListeners = this.#eventListeners.get(name);
+
+      if (currentListeners === undefined) {
+        return;
+      }
+
+      currentListeners.delete(listener);
+
+      if (currentListeners.size === 0) {
+        this.#eventListeners.delete(name);
+      }
+    };
   }
 
   handleRequest<TPayload = unknown, TResponse = unknown>(
-    _name: string,
-    _handler: IframeChildBridgeRequestHandler<TPayload, TResponse>,
+    name: string,
+    handler: IframeChildBridgeRequestHandler<TPayload, TResponse>,
   ): () => void {
-    void _name;
-    void _handler;
-
     if (this.#state === 'destroyed' || this.#state === 'connection_failed') {
       throw this.#createUnavailableError();
     }
 
-    return () => undefined;
+    const requestHandler = handler as IframeChildBridgeRequestHandler<unknown, unknown>;
+    this.#requestHandlers.set(name, requestHandler);
+
+    return () => {
+      if (this.#requestHandlers.get(name) === requestHandler) {
+        this.#requestHandlers.delete(name);
+      }
+    };
   }
 
   whenConnected(): Promise<void> {
@@ -220,9 +258,48 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
   };
 
   readonly #handleEvent = (envelope: BridgeEventEnvelope): void => {
+    if (this.#state !== 'connected') {
+      return;
+    }
+
+    const listeners = this.#eventListeners.get(envelope.name);
+
+    if (listeners !== undefined) {
+      for (const listener of Array.from(listeners)) {
+        try {
+          listener(envelope.payload);
+        } catch (error: unknown) {
+          this.#diagnostics.error({
+            code: 'EVENT_LISTENER_ERROR',
+            details: { errorName: getErrorName(error), name: envelope.name },
+            message: 'Child bridge event listener threw.',
+            sessionId: this.#config.sessionId,
+          });
+        }
+      }
+    }
+
     for (const handle of this.#pluginHandles) {
       handle.onEvent?.(envelope, this);
     }
+  };
+
+  readonly #handleRequest = (envelope: BridgeRequestEnvelope): void => {
+    if (this.#state !== 'connected') {
+      return;
+    }
+
+    const handler = this.#requestHandlers.get(envelope.name);
+
+    if (handler === undefined) {
+      this.#postRequestError(envelope, {
+        code: 'REQUEST_HANDLER_NOT_FOUND',
+        message: `No child request handler registered for ${envelope.name}.`,
+      });
+      return;
+    }
+
+    void this.#respondToRequest(envelope, handler);
   };
 
   readonly #failConnection = (): void => {
@@ -238,6 +315,8 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
     this.#terminalError = error;
     this.#transport.stop();
     this.#destroyPlugins();
+    this.#eventListeners.clear();
+    this.#requestHandlers.clear();
     this.#state = 'connection_failed';
     this.#rejectConnectedWaiters(error);
   };
@@ -253,6 +332,51 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
 
   #post(envelope: BridgeEnvelope): void {
     this.#transport.post(envelope);
+  }
+
+  async #respondToRequest(
+    envelope: BridgeRequestEnvelope,
+    handler: IframeChildBridgeRequestHandler<unknown, unknown>,
+  ): Promise<void> {
+    try {
+      const payload = await handler(envelope.payload);
+
+      if (this.#state !== 'connected') {
+        return;
+      }
+
+      this.#post({
+        payload,
+        protocol: BRIDGE_PROTOCOL_NAME,
+        requestId: envelope.requestId,
+        sessionId: this.#config.sessionId,
+        type: 'bridge:response',
+        version: BRIDGE_PROTOCOL_VERSION,
+      });
+    } catch {
+      if (this.#state !== 'connected') {
+        return;
+      }
+
+      this.#postRequestError(envelope, {
+        code: 'REQUEST_HANDLER_ERROR',
+        message: 'Child request handler failed.',
+      });
+    }
+  }
+
+  #postRequestError(
+    envelope: BridgeRequestEnvelope,
+    error: { readonly code: string; readonly message: string },
+  ): void {
+    this.#post({
+      error,
+      protocol: BRIDGE_PROTOCOL_NAME,
+      requestId: envelope.requestId,
+      sessionId: this.#config.sessionId,
+      type: 'bridge:response',
+      version: BRIDGE_PROTOCOL_VERSION,
+    });
   }
 
   #setupPlugins(options: IframeChildBridgeOptions): IframeChildBridgePluginHandle[] {
@@ -324,4 +448,12 @@ class IframeChildBridgeLifecycle implements IframeChildBridge {
 
     return new IframeBridgeError('BRIDGE_NOT_READY', 'Child bridge is not connected.');
   }
+}
+
+function getErrorName(error: unknown): string {
+  if (error instanceof Error && error.name.trim() !== '') {
+    return error.name;
+  }
+
+  return typeof error;
 }

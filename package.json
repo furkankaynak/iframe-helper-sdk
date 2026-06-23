@@ -49,6 +49,7 @@
   ],
   "exports": {
     ".": {
+      "module": "./dist/index.js",
       "import": {
         "types": "./dist/types/index.d.ts",
         "default": "./dist/index.js"
@@ -60,6 +61,7 @@
       "default": "./dist/index.js"
     },
     "./child": {
+      "module": "./dist/child.js",
       "import": {
         "types": "./dist/types/child.d.ts",
         "default": "./dist/child.js"
@@ -71,6 +73,7 @@
       "default": "./dist/child.js"
     },
     "./child/resize": {
+      "module": "./dist/child/resize.js",
       "import": {
         "types": "./dist/types/child/resize.d.ts",
         "default": "./dist/child/resize.js"
@@ -82,6 +85,7 @@
       "default": "./dist/child/resize.js"
     },
     "./resize": {
+      "module": "./dist/resize.js",
       "import": {
         "types": "./dist/types/resize.d.ts",
         "default": "./dist/resize.js"

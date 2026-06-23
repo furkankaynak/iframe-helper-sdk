@@ -33,12 +33,12 @@ type IframeChildBridgeConfig = {
 
 `allowedParentOrigins?: readonly string[] | null` has exact semantics:
 
-| Value           | Behavior                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Omitted         | Accepts the bootstrap parent origin. Relies on server-side/browser embedding controls such as CSP `frame-ancestors`. |
-| `null`          | Same as omitted: accepts the bootstrap parent origin.                                                                |
-| Non-empty array | Requires the bootstrap parent origin to exactly match one of the configured origins.                                 |
-| Empty array     | Invalid configuration. Use `null`/omit for bootstrap-only behavior, or provide at least one exact origin.            |
+| Value           | Behavior                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Omitted         | Accepts the bootstrap parent origin. Appropriate only with server-side/browser embedding controls and backend authorization.    |
+| `null`          | Same as omitted: accepts the bootstrap parent origin.                                                                          |
+| Non-empty array | Requires the bootstrap parent origin to exactly match one of the configured origins. Best when valid embedders are known.      |
+| Empty array     | Invalid configuration. Use `null`/omit for bootstrap-only behavior, or provide at least one exact origin.                      |
 
 Origin values must be exact origins such as `https://host.example`. Do not use paths, query strings, hashes, substring checks, or wildcard patterns.
 
@@ -48,7 +48,7 @@ Origin values must be exact origins such as `https://host.example`. Do not use p
 
 The parent origin comes from the bridge bootstrap parameters added to the iframe URL. With an omitted or `null` allowlist, the child accepts that bootstrap origin so it can complete the protocol handshake.
 
-That is convenient for controlled deployments, but it is not a browser-level embedding policy. If you omit `allowedParentOrigins`, protect the iframe app with server-side/browser controls such as CSP `frame-ancestors`.
+Use `allowedParentOrigins` when the valid parent origins are known. Omitted or `null` can be acceptable for broad or public multi-embedder integrations where the iframe app cannot enumerate every parent origin, but only when paired with server-side/browser embedding controls such as CSP `frame-ancestors` and application/backend authorization.
 
 ```http
 Content-Security-Policy: frame-ancestors https://host.example
@@ -58,6 +58,7 @@ Use both layers for production:
 
 - `frame-ancestors` controls which pages can embed the iframe app.
 - `allowedParentOrigins` controls which parent origins the child SDK will accept for bridge messages.
+- Application/backend authorization controls protected data and actions.
 - The wire protocol session id correlates messages to a bridge instance; it is not authentication.
 
 ---
@@ -100,7 +101,7 @@ Invalid messages are ignored or surfaced through diagnostics when configured. Ap
 ## Production Checklist
 
 - Configure `allowedParentOrigins` with exact production parent origins when they are known.
-- If `allowedParentOrigins` is omitted or `null`, enforce iframe-side CSP `frame-ancestors` on the iframe app response.
+- If `allowedParentOrigins` is omitted or `null`, use server-side/browser embedding controls such as iframe-side CSP `frame-ancestors` plus application/backend authorization.
 - Keep child-to-parent messages on exact target origins; never fall back to `'*'` for normal operation.
 - Treat `sessionId` as routing metadata only.
 - Validate sensitive payloads in the application layer or backend.

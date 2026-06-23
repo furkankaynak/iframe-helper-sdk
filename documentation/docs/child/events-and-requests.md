@@ -64,15 +64,23 @@ The child SDK validates origin, session id, protocol, version, and envelope shap
 ## Handle Parent Requests
 
 ```ts
-const unregister = bridge.handleRequest('user:get', async (payload) => {
+bridge.handleRequest('user:get', async (payload) => {
+  return { name: 'Ada' };
+});
+```
+
+`handleRequest()` registers a persistent handler for parent-initiated `bridge:request` messages. When the parent calls `bridge.request('user:get', payload)`, the child handler returns a payload or throws/rejects, and the child SDK sends the matching `bridge:response`. The handler stays registered and can respond to later `user:get` requests until you remove it or destroy the child bridge.
+
+If you register handlers dynamically, keep the returned cleanup function and call it only when that handler should stop responding:
+
+```ts
+const stopHandlingUserGet = bridge.handleRequest('user:get', async (payload) => {
   return { name: 'Ada' };
 });
 
-// Later:
-unregister();
+// Later, for route/component cleanup or handler replacement:
+stopHandlingUserGet();
 ```
-
-`handleRequest()` registers a handler for parent-initiated `bridge:request` messages. When the parent calls `bridge.request('user:get', payload)`, the child handler returns a payload or throws/rejects, and the child SDK sends the matching `bridge:response`.
 
 Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
 

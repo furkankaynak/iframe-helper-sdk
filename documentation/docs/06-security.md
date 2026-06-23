@@ -154,10 +154,10 @@ Content-Security-Policy: frame-src https://partner.example
 Content-Security-Policy: frame-src 'self'
 ```
 
-**Multiple trusted partners:**
+**Multiple trusted origins:**
 
 ```http
-Content-Security-Policy: frame-src https://partner.example https://payments.example
+Content-Security-Policy: frame-src https://partner.example https://portal.example
 ```
 
 :::warning
@@ -196,7 +196,7 @@ CSP controls which pages can load/embed the iframe. The SDK's origin, source, an
 
 ### Child SDK: restrict accepted parent origins
 
-When your iframe app uses `iframe-helper-sdk/child`, configure `allowedParentOrigins` if the valid parent origins are known:
+When your iframe app uses `iframe-helper-sdk/child`, configure `allowedParentOrigins` if the valid parent origins are known. For broad or public multi-embedder integrations where every parent origin cannot be enumerated, omitted or `null` can be acceptable only when paired with server-side/browser embedding controls such as CSP `frame-ancestors` and application/backend authorization.
 
 ```ts
 import { createIframeChildBridge } from 'iframe-helper-sdk/child';
@@ -208,12 +208,12 @@ createIframeChildBridge({
 
 Exact semantics:
 
-| Value           | Behavior                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Omitted         | Accepts the bootstrap parent origin. Relies on server-side/browser embedding controls such as CSP `frame-ancestors`. |
-| `null`          | Same as omitted: accepts the bootstrap parent origin.                                                                |
-| Non-empty array | Requires exact origin match against the bootstrap parent origin.                                                     |
-| Empty array     | Invalid configuration.                                                                                               |
+| Value           | Behavior                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Omitted         | Accepts the bootstrap parent origin. Appropriate only with server-side/browser embedding controls and backend authorization. |
+| `null`          | Same as omitted: accepts the bootstrap parent origin.                                                                       |
+| Non-empty array | Requires exact origin match against the bootstrap parent origin. Best when valid embedders are known.                       |
+| Empty array     | Invalid configuration.                                                                                                      |
 
 The child SDK does not use wildcard target origins in normal operation. After it accepts the parent origin, it posts `bridge:ready`, child events, request responses, and plugin messages back to that exact origin.
 

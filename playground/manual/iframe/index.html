@@ -3,13 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iframe Helper SDK Manual Iframe</title>
+    <title>Iframe Helper SDK Manual Child</title>
     <style>
       :root {
-        color: #f8fafc;
+        color: #e5eefc;
         font-family:
           ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-        background: #111827;
+        background: #07111f;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
@@ -18,22 +22,121 @@
       }
 
       main {
-        padding: 24px;
+        padding: 18px;
       }
 
-      .panel {
-        border: 1px solid #334155;
-        border-radius: 16px;
-        background: #1e293b;
-        padding: 20px;
+      .demo-shell {
+        width: 620px;
+        max-width: none;
+        border: 1px solid #26415f;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at top left, rgb(56 189 248 / 22%), transparent 34%),
+          linear-gradient(135deg, #0f172a 0%, #12243b 100%);
+        box-shadow: 0 18px 50px rgb(2 6 23 / 35%);
+        padding: 18px;
+        transition:
+          min-height 180ms ease,
+          width 180ms ease;
       }
 
-      h1 {
-        margin-top: 0;
+      .demo-shell.wide {
+        width: 980px;
+      }
+
+      .demo-shell.tall {
+        min-height: 820px;
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 10px;
+      }
+
+      p {
+        line-height: 1.5;
+      }
+
+      .status-grid,
+      .controls,
+      .content-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 14px 0;
+      }
+
+      .status-card,
+      .content-card,
+      .dynamic-card {
+        border: 1px solid #294b6b;
+        border-radius: 14px;
+        background: rgb(15 23 42 / 72%);
+        padding: 12px;
+      }
+
+      .status-card span {
+        display: block;
+        margin-top: 4px;
+        color: #7dd3fc;
+        overflow-wrap: anywhere;
+      }
+
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 14px 0;
+      }
+
+      button {
+        border: 0;
+        border-radius: 11px;
+        background: #38bdf8;
+        color: #082f49;
+        cursor: pointer;
+        font: inherit;
+        padding: 10px 12px;
+      }
+
+      button.secondary {
+        background: #a78bfa;
+        color: #23113f;
+      }
+
+      button.danger {
+        background: #fb7185;
+        color: #4c0519;
+      }
+
+      button:disabled {
+        background: #475569;
+        color: #cbd5e1;
+        cursor: not-allowed;
+      }
+
+      .dynamic-content {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .dynamic-card:nth-child(3n + 1) {
+        background: rgb(14 165 233 / 18%);
+      }
+
+      .dynamic-card:nth-child(3n + 2) {
+        background: rgb(168 85 247 / 18%);
+      }
+
+      .dynamic-card:nth-child(3n) {
+        background: rgb(34 197 94 / 18%);
       }
 
       pre {
-        max-height: 320px;
+        height: 160px;
+        max-height: 280px;
         overflow: auto;
         border-radius: 12px;
         background: #020617;
@@ -42,183 +145,277 @@
         white-space: pre-wrap;
       }
 
-      button {
-        border: 0;
-        border-radius: 10px;
-        background: #38bdf8;
-        color: #082f49;
-        cursor: pointer;
-        font: inherit;
-        margin: 8px 0 16px;
-        padding: 10px 12px;
-      }
-
-      .extra-content {
-        display: grid;
-        gap: 12px;
-      }
-
-      .extra-content p {
-        border: 1px solid #334155;
-        border-radius: 12px;
-        margin: 0;
-        padding: 12px;
+      @media (max-width: 680px) {
+        .status-grid,
+        .controls {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <div class="panel">
-        <h1>Manual Iframe</h1>
-        <p>This app implements the raw bridge protocol directly and imports no SDK code.</p>
-        <p>Status: <strong id="status">booting</strong></p>
-        <button id="content-button" type="button">Add dynamic content</button>
-        <div id="extra-content" class="extra-content"></div>
-        <pre id="log"></pre>
+    <main id="resize-root" class="demo-shell">
+      <h1>Manual Child SDK</h1>
+      <p>
+        This iframe imports the child SDK, registers persistent request handlers, listens for parent
+        events, sends child events, and uses the child resize plugin against this visible demo root.
+      </p>
+
+      <div class="status-grid">
+        <div class="status-card">State <span id="state">booting</span></div>
+        <div class="status-card">Parent <span id="parent-origin">unknown</span></div>
+        <div class="status-card">Session <span id="session-id">unknown</span></div>
       </div>
+
+      <section class="content-card">
+        <h2>Child Actions</h2>
+        <div class="controls">
+          <button id="cart-button" type="button" disabled>Send cart:changed</button>
+          <button id="checkout-button" type="button" disabled>Send checkout:started</button>
+          <button id="abort-button" type="button" disabled>Abort child sendEvent</button>
+          <button id="measure-button" type="button" disabled>Send child:layout</button>
+        </div>
+      </section>
+
+      <section class="content-card">
+        <h2>Resize Lab</h2>
+        <p>
+          Use these controls from inside the iframe, then watch the parent clamp and apply iframe
+          dimensions through its resize plugin.
+        </p>
+        <div class="controls">
+          <button id="add-content-button" type="button">Add height block</button>
+          <button id="remove-content-button" type="button" class="danger">
+            Remove height block
+          </button>
+          <button id="wide-button" type="button" class="secondary">Toggle 980px width</button>
+          <button id="tall-button" type="button" class="secondary">Toggle 820px min-height</button>
+          <button id="stress-button" type="button">Stress resize</button>
+          <button id="reset-button" type="button" class="danger">Reset layout</button>
+        </div>
+        <div id="dynamic-content" class="dynamic-content"></div>
+      </section>
+
+      <section class="content-card">
+        <h2>Last Parent Event</h2>
+        <pre id="last-event">none</pre>
+      </section>
+
+      <section class="content-card">
+        <h2>Child Log</h2>
+        <pre id="log"></pre>
+      </section>
     </main>
 
     <script type="module">
-      const protocol = 'iframe-bridge';
-      const version = 1;
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('__iframeBridgeSessionId');
-      const parentOrigin = params.get('__iframeBridgeParentOrigin');
-      const statusElement = document.querySelector('#status');
-      const logElement = document.querySelector('#log');
-      const contentButton = document.querySelector('#content-button');
-      const extraContent = document.querySelector('#extra-content');
-      let connected = false;
-      let lastResize = '';
+      import { createIframeChildBridge } from 'iframe-helper-sdk/child';
+      import { childResizePlugin } from 'iframe-helper-sdk/child/resize';
 
-      contentButton.addEventListener('click', () => {
-        const paragraph = document.createElement('p');
-        paragraph.textContent = `Dynamic iframe content block ${extraContent.children.length + 1}`;
-        extraContent.append(paragraph);
-        requestAnimationFrame(sendResize);
+      const allowedParentOrigin = 'http://127.0.0.1:5173';
+      const resizeRoot = document.querySelector('#resize-root');
+      const stateElement = document.querySelector('#state');
+      const parentOriginElement = document.querySelector('#parent-origin');
+      const sessionIdElement = document.querySelector('#session-id');
+      const lastEventElement = document.querySelector('#last-event');
+      const logElement = document.querySelector('#log');
+      const dynamicContent = document.querySelector('#dynamic-content');
+      const actionButtons = Array.from(
+        document.querySelectorAll('#cart-button, #checkout-button, #abort-button, #measure-button'),
+      );
+
+      let cartCount = 1;
+      let dynamicBlockCount = 0;
+
+      const bridge = createIframeChildBridge(
+        {
+          allowedParentOrigins: [allowedParentOrigin],
+          bootstrap: {
+            connectionTimeoutMs: 5000,
+          },
+          diagnostics: {
+            debug: true,
+            logger: {
+              debug: (event) => log(`debug ${event.code ?? 'NO_CODE'} ${event.message}`),
+              error: (event) => log(`error ${event.code ?? 'NO_CODE'} ${event.message}`),
+              warn: (event) => log(`warn ${event.code ?? 'NO_CODE'} ${event.message}`),
+            },
+          },
+        },
+        {
+          plugins: [childResizePlugin({ axis: 'both', element: resizeRoot })],
+        },
+      );
+
+      parentOriginElement.textContent = bridge.parentOrigin;
+      sessionIdElement.textContent = bridge.sessionId;
+      stateElement.textContent = bridge.state;
+
+      bridge.on('theme:changed', (payload) => {
+        lastEventElement.textContent = JSON.stringify(payload, null, 2);
+        document.documentElement.style.colorScheme = payload?.theme === 'light' ? 'light' : 'dark';
+        log(`Received theme:changed ${JSON.stringify(payload)}`);
       });
 
-      if (!sessionId || !parentOrigin) {
-        statusElement.textContent = 'missing bootstrap params';
-        log('Missing __iframeBridgeSessionId or __iframeBridgeParentOrigin');
-      } else {
-        window.addEventListener('message', handleMessage);
-        observeResize();
-        postToParent({ type: 'bridge:ready' });
-        statusElement.textContent = 'ready sent';
-        log(`Sent bridge:ready to ${parentOrigin}`);
-      }
+      bridge.on('cart:discount', (payload) => {
+        lastEventElement.textContent = JSON.stringify(payload, null, 2);
+        addDynamicBlock(`Parent discount event: ${payload?.code ?? 'NO_CODE'}`);
+        log(`Received cart:discount ${JSON.stringify(payload)}`);
+      });
 
-      function handleMessage(event) {
-        if (event.origin !== parentOrigin) {
-          log(`Ignored message from ${event.origin}`);
-          return;
-        }
+      bridge.handleRequest('user:get', async (payload) => {
+        log(`Handling user:get ${JSON.stringify(payload)}`);
+        return {
+          displayName: `Manual Child User ${payload?.id ?? 'unknown'}`,
+          id: payload?.id,
+          servedBy: 'child-sdk',
+        };
+      });
 
-        const envelope = event.data;
+      bridge.handleRequest('cart:get', () => {
+        log('Handling cart:get');
+        return {
+          itemCount: cartCount,
+          updatedAt: new Date().toISOString(),
+        };
+      });
 
-        if (!isBridgeEnvelope(envelope)) {
-          log('Ignored invalid envelope');
-          return;
-        }
+      bridge.handleRequest('layout:get', () => {
+        log('Handling layout:get');
+        return readLayout();
+      });
 
-        if (envelope.type === 'bridge:connected') {
-          connected = true;
-          statusElement.textContent = 'connected';
-          log('Received bridge:connected');
-          sendResize();
-          postToParent({ name: 'cart:changed', payload: { itemCount: 1 }, type: 'bridge:event' });
-          return;
-        }
+      bridge.handleRequest('slow:echo', async (payload) => {
+        const delayMs = Number(payload?.delayMs ?? 700);
+        log(`Handling slow:echo with ${delayMs}ms delay`);
+        await sleep(delayMs);
+        return { echoed: payload?.message ?? 'no message', waitedMs: delayMs };
+      });
 
-        if (envelope.type === 'bridge:event') {
-          log(`Received event ${envelope.name} ${JSON.stringify(envelope.payload)}`);
-          return;
-        }
+      bridge.handleRequest('error:boom', () => {
+        log('Handling error:boom by throwing');
+        throw new Error('Manual child request failure');
+      });
 
-        if (envelope.type === 'bridge:request') {
-          log(`Received request ${envelope.name} ${JSON.stringify(envelope.payload)}`);
-
-          if (envelope.name === 'user:get') {
-            postToParent({
-              payload: { id: envelope.payload?.id, name: 'Manual Ada' },
-              requestId: envelope.requestId,
-              type: 'bridge:response',
-            });
-            return;
+      bridge.whenConnected().then(
+        () => {
+          stateElement.textContent = bridge.state;
+          for (const button of actionButtons) {
+            button.disabled = false;
           }
+          log('Child bridge connected');
+          void sendChildEvent('cart:changed', { itemCount: cartCount, reason: 'initial-connect' });
+        },
+        (error) => {
+          stateElement.textContent = bridge.state;
+          log(`Connection failed ${String(error)}`);
+        },
+      );
 
-          postToParent({
-            error: {
-              code: 'UNKNOWN_METHOD',
-              message: `Unknown method ${envelope.name}`,
-            },
-            requestId: envelope.requestId,
-            type: 'bridge:response',
-          });
-        }
-      }
+      document.querySelector('#cart-button').addEventListener('click', () => {
+        cartCount += 1;
+        void sendChildEvent('cart:changed', { itemCount: cartCount, reason: 'child-button' });
+      });
 
-      function postToParent(message) {
-        window.parent.postMessage(
-          {
-            protocol,
-            sessionId,
-            version,
-            ...message,
-          },
-          parentOrigin,
-        );
-      }
-
-      function observeResize() {
-        if (typeof ResizeObserver === 'undefined') {
-          return;
-        }
-
-        const observer = new ResizeObserver(sendResize);
-        observer.observe(document.documentElement);
-        observer.observe(document.body);
-      }
-
-      function sendResize() {
-        if (!connected) {
-          return;
-        }
-
-        const width = Math.ceil(
-          Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
-        );
-        const height = Math.ceil(
-          Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
-        );
-        const nextResize = `${width}x${height}`;
-
-        if (nextResize === lastResize) {
-          return;
-        }
-
-        lastResize = nextResize;
-        postToParent({
-          name: 'iframe-bridge:resize',
-          payload: { height, width },
-          type: 'bridge:event',
+      document.querySelector('#checkout-button').addEventListener('click', () => {
+        void sendChildEvent('checkout:started', {
+          cartCount,
+          startedAt: new Date().toISOString(),
         });
+      });
+
+      document.querySelector('#measure-button').addEventListener('click', () => {
+        void sendChildEvent('child:layout', readLayout());
+      });
+
+      document.querySelector('#abort-button').addEventListener('click', async () => {
+        const controller = new AbortController();
+        controller.abort();
+
+        try {
+          await bridge.sendEvent(
+            'child:aborted',
+            { shouldNotPost: true },
+            { signal: controller.signal },
+          );
+        } catch (error) {
+          log(`Expected aborted sendEvent ${error?.code ?? String(error)}`);
+        }
+      });
+
+      document.querySelector('#add-content-button').addEventListener('click', () => {
+        addDynamicBlock(`Manual resize block ${dynamicBlockCount + 1}`);
+      });
+
+      document.querySelector('#remove-content-button').addEventListener('click', () => {
+        dynamicContent.lastElementChild?.remove();
+        dynamicBlockCount = dynamicContent.children.length;
+        log(`Removed resize block, remaining ${dynamicBlockCount}`);
+      });
+
+      document.querySelector('#wide-button').addEventListener('click', () => {
+        resizeRoot.classList.toggle('wide');
+        log(`Width mode ${resizeRoot.classList.contains('wide') ? 'wide' : 'normal'}`);
+      });
+
+      document.querySelector('#tall-button').addEventListener('click', () => {
+        resizeRoot.classList.toggle('tall');
+        log(`Height mode ${resizeRoot.classList.contains('tall') ? 'tall' : 'normal'}`);
+      });
+
+      document.querySelector('#stress-button').addEventListener('click', () => {
+        for (let index = 0; index < 6; index += 1) {
+          addDynamicBlock(`Stress resize block ${index + 1}`);
+        }
+        resizeRoot.classList.add('wide', 'tall');
+        log('Applied stress resize: 6 blocks, wide, tall');
+      });
+
+      document.querySelector('#reset-button').addEventListener('click', () => {
+        dynamicContent.replaceChildren();
+        dynamicBlockCount = 0;
+        resizeRoot.classList.remove('wide', 'tall');
+        log('Reset child layout');
+      });
+
+      function addDynamicBlock(text) {
+        dynamicBlockCount += 1;
+        const block = document.createElement('div');
+        block.className = 'dynamic-card';
+        block.textContent = `${text}. This block intentionally changes the observed child size.`;
+        dynamicContent.append(block);
+        log(`Added resize block ${dynamicBlockCount}`);
       }
 
-      function isBridgeEnvelope(value) {
-        return (
-          typeof value === 'object' &&
-          value !== null &&
-          value.protocol === protocol &&
-          value.version === version &&
-          value.sessionId === sessionId &&
-          typeof value.type === 'string'
-        );
+      async function sendChildEvent(name, payload) {
+        try {
+          await bridge.sendEvent(name, payload);
+          log(`Sent ${name} ${JSON.stringify(payload)}`);
+        } catch (error) {
+          log(`Failed to send ${name}: ${error?.code ?? String(error)}`);
+        }
+      }
+
+      function readLayout() {
+        const rect = resizeRoot.getBoundingClientRect();
+
+        return {
+          blocks: dynamicContent.children.length,
+          height: Math.ceil(rect.height),
+          tall: resizeRoot.classList.contains('tall'),
+          wide: resizeRoot.classList.contains('wide'),
+          width: Math.ceil(rect.width),
+        };
+      }
+
+      function sleep(delayMs) {
+        return new Promise((resolve) => {
+          window.setTimeout(resolve, delayMs);
+        });
       }
 
       function log(message) {
         logElement.textContent += `${new Date().toLocaleTimeString()} ${message}\n`;
+        logElement.scrollTop = logElement.scrollHeight;
       }
     </script>
   </body>

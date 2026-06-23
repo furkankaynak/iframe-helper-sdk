@@ -15,7 +15,11 @@
           BlinkMacSystemFont,
           'Segoe UI',
           sans-serif;
-        background: #f4f7fb;
+        background: #edf4ff;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
@@ -24,41 +28,71 @@
 
       main {
         display: grid;
-        grid-template-columns: minmax(280px, 420px) 1fr;
-        gap: 24px;
+        grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
+        gap: 20px;
         min-height: 100vh;
-        padding: 24px;
-        box-sizing: border-box;
-      }
-
-      section {
-        background: #ffffff;
-        border: 1px solid #d8e0ec;
-        border-radius: 16px;
-        box-shadow: 0 16px 40px rgb(23 32 51 / 8%);
         padding: 20px;
       }
 
+      section,
+      .card {
+        background: #ffffff;
+        border: 1px solid #d8e0ec;
+        border-radius: 18px;
+        box-shadow: 0 16px 40px rgb(23 32 51 / 8%);
+        min-width: 0;
+        padding: 18px;
+      }
+
+      .card {
+        overflow: hidden;
+      }
+
       h1,
-      h2 {
-        margin: 0 0 12px;
+      h2,
+      h3 {
+        margin: 0 0 10px;
       }
 
       p {
         line-height: 1.5;
       }
 
+      .stack {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
       button {
-        display: block;
-        width: 100%;
-        margin: 8px 0;
         border: 0;
-        border-radius: 10px;
+        border-radius: 11px;
         background: #2563eb;
         color: white;
         cursor: pointer;
         font: inherit;
+        min-width: 0;
+        overflow-wrap: anywhere;
         padding: 10px 12px;
+        white-space: normal;
+      }
+
+      button.secondary {
+        background: #7c3aed;
+      }
+
+      button.warning {
+        background: #f97316;
+      }
+
+      button.danger {
+        background: #e11d48;
       }
 
       button:disabled {
@@ -67,14 +101,39 @@
       }
 
       iframe {
+        display: block;
         width: 100%;
-        min-height: 320px;
+        max-width: 100%;
+        min-height: 260px;
         border: 1px solid #cbd5e1;
-        border-radius: 14px;
+        border-radius: 16px;
+        background: #07111f;
+        transition:
+          height 160ms ease,
+          width 160ms ease;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 8px 12px;
+        margin: 0;
+      }
+
+      dt {
+        color: #64748b;
+        font-weight: 700;
+      }
+
+      dd {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       pre {
-        max-height: 320px;
+        max-width: 100%;
+        max-height: 300px;
         overflow: auto;
         border-radius: 12px;
         background: #0f172a;
@@ -83,8 +142,22 @@
         white-space: pre-wrap;
       }
 
-      @media (max-width: 820px) {
+      .frame-column {
+        min-width: 0;
+      }
+
+      .frame-shell {
+        overflow: auto;
+      }
+
+      @media (max-width: 920px) {
         main {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .button-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -92,22 +165,108 @@
   </head>
   <body>
     <main>
-      <section>
-        <h1>Manual Parent</h1>
-        <p>
-          This page imports the package build, mounts the iframe app from a different localhost
-          port, communicates through the parent SDK, and lets the iframe resize itself.
-        </p>
-        <p>Status: <strong id="status">mounting</strong></p>
-        <button id="event-button" disabled>Send analytics event</button>
-        <button id="request-button" disabled>Request user</button>
-        <button id="remount-button">Explicit remount</button>
-        <h2>Log</h2>
-        <pre id="log"></pre>
+      <section class="stack">
+        <div>
+          <h1>Manual Parent</h1>
+          <p>
+            This page mounts the child playground from another localhost port and exercises parent
+            events, child request handlers, remote errors, remounting, diagnostics, and resize
+            clamping.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Status</h2>
+          <dl>
+            <dt>Bridge</dt>
+            <dd id="status">mounting</dd>
+            <dt>Iframe size</dt>
+            <dd id="iframe-size">not resized yet</dd>
+            <dt>Resize clamp</dt>
+            <dd>min 320x260, max 860x760, offset +0x+12</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h2>Parent Events</h2>
+          <div class="button-grid">
+            <button id="theme-button" type="button" data-ready-control disabled>Send theme</button>
+            <button id="discount-button" type="button" data-ready-control disabled>
+              Send discount event
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Parent Requests</h2>
+          <div class="button-grid">
+            <button id="user-request-button" type="button" data-ready-control disabled>
+              Request user:get
+            </button>
+            <button id="cart-request-button" type="button" data-ready-control disabled>
+              Request cart:get
+            </button>
+            <button id="layout-request-button" type="button" data-ready-control disabled>
+              Request layout:get
+            </button>
+            <button id="slow-request-button" type="button" data-ready-control disabled>
+              Request slow:echo
+            </button>
+            <button
+              id="missing-request-button"
+              type="button"
+              class="warning"
+              data-ready-control
+              disabled
+            >
+              Request missing handler
+            </button>
+            <button
+              id="failing-request-button"
+              type="button"
+              class="danger"
+              data-ready-control
+              disabled
+            >
+              Request failing handler
+            </button>
+            <button
+              id="abort-request-button"
+              type="button"
+              class="warning"
+              data-ready-control
+              disabled
+            >
+              Abort slow request
+            </button>
+            <button id="remount-button" type="button" class="secondary">Explicit remount</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Last Child Event</h2>
+          <pre id="last-child-event">none</pre>
+        </div>
+
+        <div class="card">
+          <h2>Log</h2>
+          <pre id="log"></pre>
+        </div>
       </section>
-      <section>
-        <h2>Iframe</h2>
-        <div id="frame-root"></div>
+
+      <section class="frame-column stack">
+        <div>
+          <h2>Iframe</h2>
+          <p>
+            Open the child iframe controls too: add blocks, toggle width/height, and use stress
+            resize to verify the parent resize plugin receives and clamps dimensions.
+          </p>
+        </div>
+        <div id="frame-root" class="frame-shell"></div>
+        <div class="card">
+          <h3>Diagnostics Snapshot</h3>
+          <pre id="diagnostics">[]</pre>
+        </div>
       </section>
     </main>
 
@@ -122,49 +281,70 @@
       const iframeUrl = 'http://127.0.0.1:5174/';
       const logElement = document.querySelector('#log');
       const statusElement = document.querySelector('#status');
-      const eventButton = document.querySelector('#event-button');
-      const requestButton = document.querySelector('#request-button');
-      const remountButton = document.querySelector('#remount-button');
-      const recorder = createDiagnosticRecorder({ maxEntries: 100 });
+      const iframeSizeElement = document.querySelector('#iframe-size');
+      const diagnosticsElement = document.querySelector('#diagnostics');
+      const lastChildEventElement = document.querySelector('#last-child-event');
+      const readyControls = Array.from(document.querySelectorAll('[data-ready-control]'));
+      const recorder = createDiagnosticRecorder({ maxEntries: 150 });
 
       let bridge = createBridge();
-      let unsubscribeCart = attachBridge(bridge);
+      let detachBridgeListeners = attachBridge(bridge);
+      let theme = 'dark';
 
-      eventButton.addEventListener('click', async () => {
-        try {
-          await bridge.sendEvent(
-            'analytics:track',
-            { action: 'manual-click', at: new Date().toISOString() },
-            { timeoutMs: 3000 },
-          );
-          log('Parent sent analytics:track');
-        } catch (error) {
-          logError(error);
-        }
+      document.querySelector('#theme-button').addEventListener('click', async () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        await sendParentEvent('theme:changed', { theme, updatedAt: new Date().toISOString() });
       });
 
-      requestButton.addEventListener('click', async () => {
+      document.querySelector('#discount-button').addEventListener('click', async () => {
+        await sendParentEvent('cart:discount', {
+          code: `MANUAL-${Math.floor(Math.random() * 900 + 100)}`,
+          percent: 15,
+        });
+      });
+
+      document.querySelector('#user-request-button').addEventListener('click', async () => {
+        await requestChild('user:get', { id: 'manual-user' });
+      });
+
+      document.querySelector('#cart-request-button').addEventListener('click', async () => {
+        await requestChild('cart:get', { includeDrafts: true });
+      });
+
+      document.querySelector('#layout-request-button').addEventListener('click', async () => {
+        await requestChild('layout:get', { reason: 'parent-button' });
+      });
+
+      document.querySelector('#slow-request-button').addEventListener('click', async () => {
+        await requestChild('slow:echo', { delayMs: 700, message: 'hello from parent' });
+      });
+
+      document.querySelector('#missing-request-button').addEventListener('click', async () => {
+        await requestChild('missing:handler', { shouldFail: true });
+      });
+
+      document.querySelector('#failing-request-button').addEventListener('click', async () => {
+        await requestChild('error:boom', { shouldFail: true });
+      });
+
+      document.querySelector('#abort-request-button').addEventListener('click', async () => {
         const controller = new AbortController();
+        window.setTimeout(() => controller.abort(), 150);
 
-        try {
-          const user = await bridge.request(
-            'user:get',
-            { id: 'manual-user' },
-            { signal: controller.signal, timeoutMs: 3000 },
-          );
-          log(`Parent received user:get response ${JSON.stringify(user)}`);
-        } catch (error) {
-          logError(error);
-        }
+        await requestChild(
+          'slow:echo',
+          { delayMs: 1200, message: 'this request should abort locally' },
+          { signal: controller.signal, timeoutMs: 3000 },
+        );
       });
 
-      remountButton.addEventListener('click', () => {
-        eventButton.disabled = true;
-        requestButton.disabled = true;
+      document.querySelector('#remount-button').addEventListener('click', () => {
+        setReadyControls(false);
         statusElement.textContent = 'remounting';
-        unsubscribeCart?.();
+        iframeSizeElement.textContent = 'waiting for resize';
+        detachBridgeListeners();
         bridge = bridge.remount();
-        unsubscribeCart = attachBridge(bridge);
+        detachBridgeListeners = attachBridge(bridge);
         log('Parent explicitly remounted the iframe bridge');
       });
 
@@ -181,7 +361,7 @@
               logger: recorder.logger,
             },
             iframeAttributes: {
-              title: 'Manual iframe bridge app',
+              title: 'Manual child SDK playground',
             },
             replaceContainerContent: true,
             src: iframeUrl,
@@ -192,10 +372,15 @@
           {
             plugins: [
               resizePlugin({
-                maxHeightPx: 900,
-                maxWidthPx: 1200,
-                minHeightPx: 320,
+                maxHeightPx: 760,
+                maxWidthPx: 860,
+                minHeightPx: 260,
                 minWidthPx: 320,
+                offsetHeightPx: 12,
+                onResize: (event) => {
+                  iframeSizeElement.textContent = formatResize(event);
+                  log(`Resize applied ${JSON.stringify(event)}`);
+                },
               }),
             ],
           },
@@ -203,29 +388,90 @@
       }
 
       function attachBridge(nextBridge) {
-        const unsubscribe = nextBridge.on('cart:changed', (payload) => {
-          log(`Parent received cart:changed ${JSON.stringify(payload)}`);
-        });
+        const unsubscribers = [
+          nextBridge.on('cart:changed', (payload) => recordChildEvent('cart:changed', payload)),
+          nextBridge.on('checkout:started', (payload) =>
+            recordChildEvent('checkout:started', payload),
+          ),
+          nextBridge.on('child:layout', (payload) => recordChildEvent('child:layout', payload)),
+        ];
+
+        statusElement.textContent = nextBridge.state;
 
         nextBridge.whenReady().then(
           () => {
-            statusElement.textContent = 'ready';
-            eventButton.disabled = false;
-            requestButton.disabled = false;
+            statusElement.textContent = nextBridge.state;
+            setReadyControls(true);
+            refreshDiagnostics();
             log('Bridge ready');
-            log(`Diagnostics ${JSON.stringify(recorder.entries, null, 2)}`);
           },
           (error) => {
-            statusElement.textContent = 'failed';
+            statusElement.textContent = nextBridge.state;
+            setReadyControls(false);
             logError(error);
           },
         );
 
-        return unsubscribe;
+        return () => {
+          for (const unsubscribe of unsubscribers) {
+            unsubscribe();
+          }
+        };
+      }
+
+      async function sendParentEvent(name, payload) {
+        try {
+          await bridge.sendEvent(name, payload, { timeoutMs: 3000 });
+          log(`Parent sent ${name} ${JSON.stringify(payload)}`);
+        } catch (error) {
+          logError(error);
+        } finally {
+          refreshDiagnostics();
+        }
+      }
+
+      async function requestChild(name, payload, options = { timeoutMs: 3000 }) {
+        try {
+          const response = await bridge.request(name, payload, options);
+          log(`Parent received ${name} response ${JSON.stringify(response)}`);
+        } catch (error) {
+          logError(error);
+        } finally {
+          refreshDiagnostics();
+        }
+      }
+
+      function recordChildEvent(name, payload) {
+        const event = { name, payload, receivedAt: new Date().toISOString() };
+        lastChildEventElement.textContent = JSON.stringify(event, null, 2);
+        log(`Parent received ${name} ${JSON.stringify(payload)}`);
+        refreshDiagnostics();
+      }
+
+      function setReadyControls(enabled) {
+        for (const control of readyControls) {
+          control.disabled = !enabled;
+        }
+      }
+
+      function refreshDiagnostics() {
+        diagnosticsElement.textContent = JSON.stringify(recorder.entries.slice(-12), null, 2);
+      }
+
+      function formatResize(event) {
+        const width = event.width === undefined ? '-' : `${event.width}px`;
+        const height = event.height === undefined ? '-' : `${event.height}px`;
+        const requestedWidth =
+          event.requestedWidth === undefined ? '-' : `${event.requestedWidth}px`;
+        const requestedHeight =
+          event.requestedHeight === undefined ? '-' : `${event.requestedHeight}px`;
+
+        return `applied ${width} x ${height}; requested ${requestedWidth} x ${requestedHeight}`;
       }
 
       function log(message) {
         logElement.textContent += `${new Date().toLocaleTimeString()} ${message}\n`;
+        logElement.scrollTop = logElement.scrollHeight;
       }
 
       function logError(error) {

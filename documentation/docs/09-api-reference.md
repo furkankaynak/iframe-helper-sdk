@@ -712,10 +712,13 @@ handleRequest<TPayload = unknown, TResponse = unknown>(
 ): () => void
 ```
 
-Registers a handler for parent `bridge:request` messages and sends a matching `bridge:response` when the handler resolves or rejects.
+Registers a persistent handler for parent `bridge:request` messages and sends a matching `bridge:response` when the handler resolves or rejects. The returned cleanup function removes this handler; call it only when the child app should stop handling that request name, such as route cleanup, component unmount, or handler replacement.
 
 ```ts
-bridge.handleRequest('user:get', async (payload) => ({ name: 'Ada' }));
+const stopHandlingUserGet = bridge.handleRequest('user:get', async (payload) => ({ name: 'Ada' }));
+
+// Later, only when this handler should no longer respond:
+stopHandlingUserGet();
 ```
 
 Child request handlers respond to parent `bridge:request`; the child does not initiate `bridge:request`.
