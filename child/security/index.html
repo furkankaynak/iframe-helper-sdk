@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-W874H14NHJ"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-W874H14NHJ",{anonymize_ip:!0})</script><link rel="stylesheet" href="/iframe-helper-sdk/assets/css/styles.3a1d1d8e.css">
-<script src="/iframe-helper-sdk/assets/js/runtime~main.df08cf7f.js" defer="defer"></script>
+<script src="/iframe-helper-sdk/assets/js/runtime~main.f75279d0.js" defer="defer"></script>
 <script src="/iframe-helper-sdk/assets/js/main.b098447f.js" defer="defer"></script>
 </head>
 <body>
@@ -23,17 +23,18 @@
 <p>The child config shape is:</p>
 <div class="language-ts codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-ts codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">type</span><span class="token plain"> </span><span class="token class-name">IframeChildBridgeConfig</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  allowedParentOrigins</span><span class="token operator" style="color:#393A34">?</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">readonly</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">[</span><span class="token punctuation" style="color:#393A34">]</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">null</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div>
 <p><code>allowedParentOrigins?: readonly string[] | null</code> has exact semantics:</p>
-<table><thead><tr><th>Value</th><th>Behavior</th></tr></thead><tbody><tr><td>Omitted</td><td>Accepts the bootstrap parent origin. Relies on server-side/browser embedding controls such as CSP <code>frame-ancestors</code>.</td></tr><tr><td><code>null</code></td><td>Same as omitted: accepts the bootstrap parent origin.</td></tr><tr><td>Non-empty array</td><td>Requires the bootstrap parent origin to exactly match one of the configured origins.</td></tr><tr><td>Empty array</td><td>Invalid configuration. Use <code>null</code>/omit for bootstrap-only behavior, or provide at least one exact origin.</td></tr></tbody></table>
+<table><thead><tr><th>Value</th><th>Behavior</th></tr></thead><tbody><tr><td>Omitted</td><td>Accepts the bootstrap parent origin. Appropriate only with server-side/browser embedding controls and backend authorization.</td></tr><tr><td><code>null</code></td><td>Same as omitted: accepts the bootstrap parent origin.</td></tr><tr><td>Non-empty array</td><td>Requires the bootstrap parent origin to exactly match one of the configured origins. Best when valid embedders are known.</td></tr><tr><td>Empty array</td><td>Invalid configuration. Use <code>null</code>/omit for bootstrap-only behavior, or provide at least one exact origin.</td></tr></tbody></table>
 <p>Origin values must be exact origins such as <code>https://host.example</code>. Do not use paths, query strings, hashes, substring checks, or wildcard patterns.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="bootstrap-origin-is-not-proof-of-trust">Bootstrap Origin Is Not Proof Of Trust<a href="#bootstrap-origin-is-not-proof-of-trust" class="hash-link" aria-label="Direct link to Bootstrap Origin Is Not Proof Of Trust" title="Direct link to Bootstrap Origin Is Not Proof Of Trust" translate="no">​</a></h2>
 <p>The parent origin comes from the bridge bootstrap parameters added to the iframe URL. With an omitted or <code>null</code> allowlist, the child accepts that bootstrap origin so it can complete the protocol handshake.</p>
-<p>That is convenient for controlled deployments, but it is not a browser-level embedding policy. If you omit <code>allowedParentOrigins</code>, protect the iframe app with server-side/browser controls such as CSP <code>frame-ancestors</code>.</p>
+<p>Use <code>allowedParentOrigins</code> when the valid parent origins are known. Omitted or <code>null</code> can be acceptable for broad or public multi-embedder integrations where the iframe app cannot enumerate every parent origin, but only when paired with server-side/browser embedding controls such as CSP <code>frame-ancestors</code> and application/backend authorization.</p>
 <div class="language-http codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-http codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">Content-Security-Policy: frame-ancestors https://host.example</span><br></div></code></pre></div></div>
 <p>Use both layers for production:</p>
 <ul>
 <li class=""><code>frame-ancestors</code> controls which pages can embed the iframe app.</li>
 <li class=""><code>allowedParentOrigins</code> controls which parent origins the child SDK will accept for bridge messages.</li>
+<li class="">Application/backend authorization controls protected data and actions.</li>
 <li class="">The wire protocol session id correlates messages to a bridge instance; it is not authentication.</li>
 </ul>
 <hr>
@@ -65,7 +66,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="production-checklist">Production Checklist<a href="#production-checklist" class="hash-link" aria-label="Direct link to Production Checklist" title="Direct link to Production Checklist" translate="no">​</a></h2>
 <ul>
 <li class="">Configure <code>allowedParentOrigins</code> with exact production parent origins when they are known.</li>
-<li class="">If <code>allowedParentOrigins</code> is omitted or <code>null</code>, enforce iframe-side CSP <code>frame-ancestors</code> on the iframe app response.</li>
+<li class="">If <code>allowedParentOrigins</code> is omitted or <code>null</code>, use server-side/browser embedding controls such as iframe-side CSP <code>frame-ancestors</code> plus application/backend authorization.</li>
 <li class="">Keep child-to-parent messages on exact target origins; never fall back to <code>&#x27;*&#x27;</code> for normal operation.</li>
 <li class="">Treat <code>sessionId</code> as routing metadata only.</li>
 <li class="">Validate sensitive payloads in the application layer or backend.</li>
