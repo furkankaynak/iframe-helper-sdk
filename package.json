@@ -1,6 +1,6 @@
 {
   "name": "iframe-helper-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "TypeScript SDK for secure cross-domain iframe embeds with a strict postMessage bridge, origin validation, handshakes, RPC-style requests, events, and typed contracts.",
   "keywords": [
     "iframe",
